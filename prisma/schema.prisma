@@ -1,0 +1,36 @@
+model User {
+  id             Int              @id @default(autoincrement())
+  fullName       String
+  email          String?          @unique
+  phone          String           @unique
+  password       String
+  role           String           @default("CUSTOMER")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  repairRequests RepairRequest[]   // ← This line must exist
+}
+
+model RepairRequest {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  user                User      @relation(fields: [userId], references: [id])
+
+  deviceType          String
+  brand               String
+  model               String
+  serialNumber        String?
+  problemDescription  String
+  password            String?
+  hasCharger          Boolean   @default(false)
+  hasPowerCord        Boolean   @default(false)
+  hasMouse            Boolean   @default(false)
+  hasBag              Boolean   @default(false)
+  otherItems          String?
+  preferredStartDate  DateTime?
+  preferredEndDate    DateTime?
+  status              String    @default("Pending")
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
