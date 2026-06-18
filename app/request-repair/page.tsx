@@ -55,7 +55,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   // Get logged in user
   const storedUser = localStorage.getItem('user');
   if (!storedUser) {
-    alert('Please login first.');
+    alert('Please login first to submit a repair request.');
     window.location.href = '/login';
     return;
   }
@@ -73,14 +73,14 @@ const handleSubmit = async (e: React.FormEvent) => {
         deviceType: formData.deviceType,
         brand: formData.brand,
         model: formData.model,
-        serialNumber: formData.serialNumber,
+        serialNumber: formData.serialNumber || null,
         problemDescription: formData.problemDescription,
-        password: formData.password,
+        password: formData.password || null,
         hasCharger: formData.hasCharger,
         hasPowerCord: formData.hasPowerCord,
         hasMouse: formData.hasMouse,
         hasBag: formData.hasBag,
-        otherItems: formData.otherItems,
+        otherItems: formData.otherItems || null,
         preferredStartDate: formData.preferredStartDate || null,
         preferredEndDate: formData.preferredEndDate || null,
       }),
@@ -90,7 +90,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     if (response.ok) {
       alert('Repair request submitted successfully!');
-      window.location.href = '/my-repairs'; // ← Redirect to tracking page
+      window.location.href = '/my-repairs'; // Redirect to tracking page
     } else {
       alert(data.message || 'Failed to submit request');
     }
