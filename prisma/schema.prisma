@@ -41,6 +41,8 @@ model RepairRequest {
   preferredEndDate    DateTime?
   status              String    @default("Pending")
 
+  images              String[]  @default([])
+  
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
