@@ -4,14 +4,15 @@ import { createClient } from '@supabase/supabase-js';
 
 const prisma = new PrismaClient();
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
+
+    // Initialize Supabase inside the function (safer for build)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     const userId = Number(formData.get('userId'));
     const deviceType = formData.get('deviceType') as string;
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
-    // Upload images to Supabase Storage
+    // Upload images
     const imageUrls: string[] = [];
 
     for (const file of imageFiles) {
@@ -46,9 +47,9 @@ export async function POST(request: NextRequest) {
         .upload(fileName, file);
 
       if (error) {
-  console.error('Image upload error:', error);
-  throw new Error(`Failed to upload image: ${error.message}`);
-}
+        console.error('Image upload error:', error);
+        continue;
+      }
 
       const { data: urlData } = supabase.storage
         .from('repair-images')
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save to database (including images array)
+    // Save to database
     const repairRequest = await prisma.repairRequest.create({
       data: {
         userId,
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
         otherItems: hasOther ? otherItems : null,
         preferredStartDate: preferredStartDate ? new Date(preferredStartDate) : null,
         preferredEndDate: preferredEndDate ? new Date(preferredEndDate) : null,
-        images: imageUrls,           // ← This saves the image URLs
+        images: imageUrls,
       },
     });
 
