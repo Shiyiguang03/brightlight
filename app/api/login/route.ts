@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
         phone: user.phone,
         email: user.email,
         role: user.role,
+        // profileImage may not exist on the Prisma User type in some schemas
+        profileImage: 'profileImage' in user ? (user as any).profileImage : null,
       },
     });
 
