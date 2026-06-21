@@ -14,6 +14,19 @@ export default function BrightLightHome() {
     }
   }, []);
 
+  // Improved login prompt function
+  const handleProtectedAction = (path: string, message: string) => {
+    const user = localStorage.getItem('user');
+    if (user) {
+      window.location.href = path;
+    } else {
+      // More professional prompt
+      if (confirm(`${message}\n\nDo you want to login now?`)) {
+        window.location.href = '/login';
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen font-sans" style={{ backgroundColor: '#fcfbf7', color: '#453227' }}>
       
@@ -32,7 +45,6 @@ export default function BrightLightHome() {
             </span>
           </div>
 
-          {/* Heading - Original on desktop, fixed on mobile */}
           <h1 className="text-5xl md:text-6xl font-bold tracking-tighter mb-6 text-white">
             Computer & Laptop <br className="hidden md:block" />
             Peripheral Repairs<br />
@@ -44,18 +56,10 @@ export default function BrightLightHome() {
             Watch real-time progress. Pay only when you're happy.
           </p>
 
-          {/* Buttons - Original layout on desktop */}
+          {/* Buttons - Now both solid */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
-              onClick={() => {
-                const user = localStorage.getItem('user');
-                if (user) {
-                  window.location.href = '/request-repair';
-                } else {
-                  alert('Please login first to submit a repair request.');
-                  window.location.href = '/login';
-                }
-              }}
+              onClick={() => handleProtectedAction('/request-repair', 'Please login to submit a repair request.')}
               className="inline-flex items-center justify-center gap-x-3 text-white font-bold px-8 py-4 rounded-2xl text-lg transition shadow-xl"
               style={{ backgroundColor: '#d97706' }}
             >
@@ -63,17 +67,9 @@ export default function BrightLightHome() {
             </button>
 
             <button 
-              onClick={() => {
-                const user = localStorage.getItem('user');
-                if (user) {
-                  window.location.href = '/my-repairs';
-                } else {
-                  alert('Please login first to track your repairs.');
-                  window.location.href = '/login';
-                }
-              }}
-              className="inline-flex items-center justify-center gap-x-3 border font-bold px-8 py-4 rounded-2xl text-lg transition hover:bg-white/5"
-              style={{ borderColor: 'rgba(255,255,255,0.4)' }}
+              onClick={() => handleProtectedAction('/my-repairs', 'Please login to track your repairs.')}
+              className="inline-flex items-center justify-center gap-x-3 font-bold px-8 py-4 rounded-2xl text-lg transition shadow-xl"
+              style={{ backgroundColor: '#453227', color: 'white' }}
             >
               Track My Repair
             </button>
@@ -153,8 +149,36 @@ export default function BrightLightHome() {
         </div>
       </section>
 
+      {/* NEW: Sales Section */}
+      <section className="max-w-6xl mx-auto px-6 py-16">
+        <div className="text-center mb-10">
+          <span className="font-bold text-sm" style={{ color: '#b45309' }}>WHAT WE OFFER</span>
+          <h2 className="text-4xl font-bold tracking-tight mt-2" style={{ color: '#453227' }}>Sales</h2>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[
+            "New & Refurbished PC/Laptop",
+            "Custom build Desktop PC",
+            "Computer Hardware & Software",
+            "Printers + Accessories",
+            "Projectors",
+            "UPS",
+            "PC/Laptop Accessories"
+          ].map((item, index) => (
+            <div 
+              key={index} 
+              className="bg-white border rounded-2xl p-5 hover:shadow-md transition flex items-center"
+              style={{ borderColor: '#e6dfd5' }}
+            >
+              <div className="font-semibold" style={{ color: '#453227' }}>{item}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Delivery Options */}
-      <section id="delivery" className="max-w-6xl mx-auto px-6 py-20">
+      <section id="delivery" className="max-w-6xl mx-auto px-6 py-16 border-t" style={{ borderColor: '#e6dfd5' }}>
         <div className="text-center mb-10">
           <span className="font-bold" style={{ color: '#b45309' }}>FLEXIBLE OPTIONS</span>
           <h2 className="text-4xl font-bold tracking-tight mt-2" style={{ color: '#453227' }}>How do you want to send your device?</h2>
@@ -184,18 +208,20 @@ export default function BrightLightHome() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <div style={{ backgroundColor: '#1f130b' }} className="text-white py-14">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold tracking-tight mb-3 text-white">Ready to get your device fixed?</h2>
-          <p className="mb-8" style={{ color: '#d9c8bc' }}>Join hundreds of happy customers who track their repair in real time.</p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/register" className="px-10 py-4 bg-white font-bold rounded-2xl text-lg hover:bg-amber-50 transition" style={{ color: '#1f130b' }}>Create Free Account</a>
-            <a href="/login" className="px-10 py-4 border hover:bg-white/5 font-bold rounded-2xl text-lg transition" style={{ borderColor: 'rgba(255,255,255,0.3)' }}>Login</a>
+      {/* Final CTA - Hidden when logged in */}
+      {!userName && (
+        <div style={{ backgroundColor: '#1f130b' }} className="text-white py-14">
+          <div className="max-w-4xl mx-auto px-6 text-center">
+            <h2 className="text-3xl font-bold tracking-tight mb-3 text-white">Ready to get your device fixed?</h2>
+            <p className="mb-8" style={{ color: '#d9c8bc' }}>Join hundreds of happy customers who track their repair in real time.</p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a href="/register" className="px-10 py-4 bg-white font-bold rounded-2xl text-lg hover:bg-amber-50 transition" style={{ color: '#1f130b' }}>Create Free Account</a>
+              <a href="/login" className="px-10 py-4 border hover:bg-white/5 font-bold rounded-2xl text-lg transition" style={{ borderColor: 'rgba(255,255,255,0.3)' }}>Login</a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-white border-t py-10" style={{ borderColor: '#e6dfd5' }}>
