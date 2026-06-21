@@ -19,7 +19,7 @@ const IMPORTANT_DESKTOP_LINKS = [
 ];
 
 export default function Navbar() {
-  const [userName, setUserName] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -27,8 +27,7 @@ export default function Navbar() {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setUserName(user.fullName);
+      setUser(JSON.parse(storedUser));
     }
 
     function handleClickOutside(event: MouseEvent) {
@@ -47,12 +46,51 @@ export default function Navbar() {
 
   const isActive = (path: string) => pathname === path;
 
+  // ✅ Bulletproof Avatar sizing using strict inline styles
+  const Avatar = () => {
+    if (user?.profileImage) {
+      return (
+        <img 
+          src={user.profileImage} 
+          alt="Profile" 
+          style={{ 
+            width: '36px', 
+            height: '36px', 
+            minWidth: '36px', 
+            minHeight: '36px',
+            objectFit: 'cover' 
+          }}
+          className="rounded-full border border-[#e6dfd5]" 
+        />
+      );
+    }
+    
+    // Fallback to first letter of full name, email, or 'U'
+    const firstLetter = user?.fullName?.[0] || user?.email?.[0] || 'U';
+    return (
+      <div 
+        style={{ 
+          width: '36px', 
+          height: '36px', 
+          minWidth: '36px', 
+          minHeight: '36px' 
+        }}
+        className="rounded-full bg-[#fef3c7] flex items-center justify-center text-[#d97706] font-bold text-sm border border-[#e6dfd5]"
+      >
+        {firstLetter.toUpperCase()}
+      </div>
+    );
+  };
+
+  // ✅ Get the best display name (First name, or beginning of email)
+  const displayName = user?.fullName?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
+
   return (
     <nav style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #e6dfd5' }} className="sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo */}
+          {/* Logo + Links */}
           <div className="flex items-center gap-x-6">
             <Link href="/" className="flex items-center gap-x-3 shrink-0">
               <img src="/images/logo.jpg" alt="Bright Light Logo" className="h-10 w-auto object-contain" />
@@ -79,6 +117,7 @@ export default function Navbar() {
           {/* Right Side */}
           <div className="flex items-center gap-x-4">
             
+            {/* Live Agent */}
             <a 
               href="https://wa.me/60123456789" 
               target="_blank"
@@ -88,32 +127,19 @@ export default function Navbar() {
               Live Agent
             </a>
 
-            {/* === CLICKABLE USERNAME (No Dropdown) === */}
-            {userName ? (
-              <div className="flex items-center gap-x-3">
-                <Link 
-                  href="/profile"
-                  className="text-sm font-medium px-3 py-1.5 rounded-xl hover:bg-stone-100 transition"
-                  style={{ color: '#453227' }}
-                >
-                  Hi, {userName.split(' ')[0]}
-                </Link>
-                <button 
-                  onClick={handleLogout}
-                  className="text-sm font-medium text-red-600 hover:text-red-700 transition"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="hidden sm:flex items-center gap-x-2">
-                <Link href="/login" style={{ color: '#453227' }} className="px-5 py-2 text-sm font-semibold hover:bg-stone-50 rounded-xl transition">
-                  Login
-                </Link>
-                <Link href="/register" style={{ backgroundColor: '#d97706' }} className="px-5 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition shadow-sm">
-                  Get Started
-                </Link>
-              </div>
+            {/* User Profile - Desktop: Picture + Name | Mobile: Picture only */}
+            {user && (
+              <Link 
+                href="/profile" 
+                className="flex items-center gap-x-2 px-2 py-1 rounded-xl hover:bg-stone-100 transition"
+              >
+                <Avatar />
+                
+                {/* Username only on desktop (hidden on mobile, block on md+) */}
+                <span className="hidden md:block text-sm font-medium" style={{ color: '#453227' }}>
+                  {displayName}
+                </span>
+              </Link>
             )}
 
             {/* Menu Dropdown */}
@@ -150,6 +176,15 @@ export default function Navbar() {
                       {item.label}
                     </Link>
                   ))}
+
+                  {user && (
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-stone-50"
+                    >
+                      Logout
+                    </button>
+                  )}
                 </div>
               )}
             </div>

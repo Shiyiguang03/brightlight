@@ -5,11 +5,6 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -20,6 +15,12 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
+
+  // ✅ Moved inside the component (fixes build + upload error)
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');

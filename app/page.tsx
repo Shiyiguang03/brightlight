@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Navbar from '@/components/Navbar'; // Connects the global customizable navigation menu list
+import Navbar from '@/components/Navbar';
 
 export default function BrightLightHome() {
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is logged in
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       const user = JSON.parse(storedUser);
@@ -18,19 +17,25 @@ export default function BrightLightHome() {
   return (
     <div className="min-h-screen font-sans" style={{ backgroundColor: '#fcfbf7', color: '#453227' }}>
       
-      {/* Universal Shared Navbar */}
       <Navbar />
 
       {/* Hero Section */}
       <section style={{ background: 'linear-gradient(135deg, #2e1f15 0%, #451a03 50%, #78350f 100%)' }} className="text-white">
         <div className="max-w-5xl mx-auto px-6 pt-16 pb-20 text-center">
-          <div className="inline-flex items-center gap-x-2 px-4 py-1.5 rounded-full text-sm mb-6 border" style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}>
+          
+          {/* Trust Badge */}
+          <div className="inline-flex items-center gap-x-2 px-4 py-1.5 rounded-full text-sm mb-6 border" 
+               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}>
             <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-            <span className="font-medium" style={{ color: '#fef3c7' }}>Trusted by 500+ customers in northern Peninsular Malaysia especially in Penang</span>
+            <span className="font-medium" style={{ color: '#fef3c7' }}>
+              Trusted by 500+ customers in northern Peninsular Malaysia especially in Penang
+            </span>
           </div>
 
+          {/* Heading - Original on desktop, fixed on mobile */}
           <h1 className="text-5xl md:text-6xl font-bold tracking-tighter mb-6 text-white">
-            Computer(Desktop/Laptop). & Peripheral's Repairs<br />
+            Computer & Laptop <br className="hidden md:block" />
+            Peripheral Repairs<br />
             <span style={{ color: '#fde68a' }}>Done Right. Tracked Live.</span>
           </h1>
           
@@ -39,6 +44,7 @@ export default function BrightLightHome() {
             Watch real-time progress. Pay only when you're happy.
           </p>
 
+          {/* Buttons - Original layout on desktop */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button 
               onClick={() => {
