@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { supabase } from '@/lib/supabase';   // ← Import shared client
+import { supabase } from '@/lib/supabase'; // Using shared client
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -12,6 +12,7 @@ export default function ProfilePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // Password change states
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -26,16 +27,21 @@ export default function ProfilePage() {
     }
   }, []);
 
+  // Handle file selection (show preview)
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setSelectedFile(file);
+
     const reader = new FileReader();
-    reader.onload = (event) => setPreviewUrl(event.target?.result as string);
+    reader.onload = (event) => {
+      setPreviewUrl(event.target?.result as string);
+    };
     reader.readAsDataURL(file);
   };
 
+  // Upload and save the new photo
   const handleUploadPhoto = async () => {
     if (!selectedFile || !user) return;
 
@@ -45,6 +51,7 @@ export default function ProfilePage() {
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${user.id || Date.now()}-${Math.random()}.${fileExt}`;
 
+      // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('profile-pictures')
         .upload(fileName, selectedFile);
@@ -67,23 +74,27 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          imageUrl,
+          imageUrl: imageUrl,
         }),
       });
 
-      const result = await res.json();
-
       if (!res.ok) {
-        alert(result.message || 'Failed to save image');
+        const result = await res.json();
+        alert(result.message || 'Failed to save image to database');
         setUploading(false);
         return;
       }
 
+      // Update localStorage
       const updatedUser = { ...user, profileImage: imageUrl };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setProfileImage(imageUrl);
 
+      // Notify Navbar to update automatically
+      window.dispatchEvent(new Event('profile-updated'));
+
+      // Clear selection
       setSelectedFile(null);
       setPreviewUrl(null);
 
@@ -96,11 +107,13 @@ export default function ProfilePage() {
     setUploading(false);
   };
 
+  // Cancel photo selection
   const handleCancelSelection = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
   };
 
+  // Remove current profile picture
   const handleRemovePhoto = async () => {
     if (!user) return;
 
@@ -118,11 +131,15 @@ export default function ProfilePage() {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setProfileImage(null);
+
+      // Notify Navbar
+      window.dispatchEvent(new Event('profile-updated'));
     } catch (err) {
       alert('Failed to remove photo');
     }
   };
 
+  // Change Password
   const handleChangePassword = () => {
     setPasswordMessage('');
 
@@ -177,6 +194,7 @@ export default function ProfilePage() {
             <h3 className="font-semibold mb-4" style={{ color: '#453227' }}>Profile Picture</h3>
             
             <div className="flex flex-col md:flex-row items-start gap-6">
+              {/* Photo Display / Preview */}
               <div className="w-24 h-24 rounded-full overflow-hidden border-2 flex-shrink-0" style={{ borderColor: '#e6dfd5' }}>
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -189,6 +207,7 @@ export default function ProfilePage() {
                 )}
               </div>
 
+              {/* Action Buttons */}
               <div className="flex-1">
                 {!selectedFile ? (
                   <div className="flex flex-wrap gap-3">
@@ -199,26 +218,38 @@ export default function ProfilePage() {
                     </label>
 
                     {profileImage && (
-                      <button onClick={handleRemovePhoto} className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition hover:bg-red-50"
-                              style={{ borderColor: '#e6dfd5', color: '#b91c1c' }}>
+                      <button 
+                        onClick={handleRemovePhoto}
+                        className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition hover:bg-red-50"
+                        style={{ borderColor: '#e6dfd5', color: '#b91c1c' }}
+                      >
                         Remove Photo
                       </button>
                     )}
                   </div>
                 ) : (
+                  /* Preview Mode */
                   <div className="flex flex-wrap gap-3">
-                    <button onClick={handleUploadPhoto} disabled={uploading}
-                            className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90 disabled:opacity-70"
-                            style={{ backgroundColor: '#d97706', color: 'white' }}>
+                    <button 
+                      onClick={handleUploadPhoto} 
+                      disabled={uploading}
+                      className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90 disabled:opacity-70"
+                      style={{ backgroundColor: '#d97706', color: 'white' }}
+                    >
                       {uploading ? 'Saving...' : 'Save New Photo'}
                     </button>
-                    <button onClick={handleCancelSelection} disabled={uploading}
-                            className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition hover:bg-stone-50"
-                            style={{ borderColor: '#e6dfd5', color: '#453227' }}>
+
+                    <button 
+                      onClick={handleCancelSelection}
+                      disabled={uploading}
+                      className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition hover:bg-stone-50"
+                      style={{ borderColor: '#e6dfd5', color: '#453227' }}
+                    >
                       Cancel
                     </button>
                   </div>
                 )}
+
                 <p className="text-xs mt-2" style={{ color: '#9f7a5f' }}>
                   JPG or PNG • Recommended size: 400x400
                 </p>
@@ -230,37 +261,80 @@ export default function ProfilePage() {
           <div className="mb-10">
             <h3 className="font-semibold mb-4" style={{ color: '#453227' }}>Personal Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-              <div><p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>FULL NAME</p><p className="mt-1 text-lg">{user.fullName}</p></div>
-              <div><p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>PHONE NUMBER</p><p className="mt-1 text-lg">{user.phone || 'Not provided'}</p></div>
-              <div><p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>EMAIL ADDRESS</p><p className="mt-1 text-lg">{user.email || 'Not provided'}</p></div>
-              <div><p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>ACCOUNT TYPE</p><p className="mt-1 text-lg capitalize">{user.role?.toLowerCase()}</p></div>
+              <div>
+                <p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>FULL NAME</p>
+                <p className="mt-1 text-lg" style={{ color: '#453227' }}>{user.fullName}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>PHONE NUMBER</p>
+                <p className="mt-1 text-lg" style={{ color: '#453227' }}>{user.phone || 'Not provided'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>EMAIL ADDRESS</p>
+                <p className="mt-1 text-lg" style={{ color: '#453227' }}>{user.email || 'Not provided'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>ACCOUNT TYPE</p>
+                <p className="mt-1 text-lg capitalize" style={{ color: '#453227' }}>{user.role?.toLowerCase()}</p>
+              </div>
             </div>
           </div>
 
           {/* Change Password */}
           <div>
             <h3 className="font-semibold mb-4" style={{ color: '#453227' }}>Change Password</h3>
+            
             <div className="space-y-4 max-w-md">
               <div>
                 <label className="text-xs font-bold tracking-wider block mb-1" style={{ color: '#9f7a5f' }}>CURRENT PASSWORD</label>
-                <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="Enter current password" />
+                <input 
+                  type="password" 
+                  value={oldPassword} 
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-3 text-sm" 
+                  style={{ borderColor: '#e6dfd5' }}
+                  placeholder="Enter current password"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold tracking-wider block mb-1" style={{ color: '#9f7a5f' }}>NEW PASSWORD</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="Enter new password" />
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-3 text-sm" 
+                  style={{ borderColor: '#e6dfd5' }}
+                  placeholder="Enter new password"
+                />
               </div>
               <div>
                 <label className="text-xs font-bold tracking-wider block mb-1" style={{ color: '#9f7a5f' }}>CONFIRM NEW PASSWORD</label>
-                <input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="Confirm new password" />
+                <input 
+                  type="password" 
+                  value={confirmNewPassword} 
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-3 text-sm" 
+                  style={{ borderColor: '#e6dfd5' }}
+                  placeholder="Confirm new password"
+                />
               </div>
 
-              {passwordMessage && <p className={`text-sm ${passwordMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>{passwordMessage}</p>}
+              {passwordMessage && (
+                <p className={`text-sm ${passwordMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                  {passwordMessage}
+                </p>
+              )}
 
-              <button onClick={handleChangePassword} className="mt-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90" style={{ backgroundColor: '#d97706', color: 'white' }}>
+              <button 
+                onClick={handleChangePassword}
+                className="mt-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90"
+                style={{ backgroundColor: '#d97706', color: 'white' }}
+              >
                 Update Password
               </button>
             </div>
           </div>
+
         </div>
       </div>
     </div>

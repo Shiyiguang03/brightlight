@@ -25,10 +25,25 @@ export default function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Function to load user from localStorage
+    const loadUser = () => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        setUser(null);
+      }
+    };
+
+    // Load user on first mount
+    loadUser();
+
+    // Listen for profile picture update from Profile page
+    const handleProfileUpdate = () => {
+      loadUser();
+    };
+
+    window.addEventListener('profile-updated', handleProfileUpdate);
 
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -36,7 +51,11 @@ export default function Navbar() {
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('profile-updated', handleProfileUpdate);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
