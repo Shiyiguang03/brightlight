@@ -75,9 +75,9 @@ function ProgressTracker({ status }: { status: string }) {
   const isDone = status === 'Completed' || status === 'Done';
 
   return (
-    <div className="mt-6 pt-2">
-      {/* Circles + Labels */}
-      <div className="flex items-start justify-between relative">
+    <div className="mt-6 pt-4">
+      {/* Circles Row */}
+      <div className="flex items-start justify-between">
         {STATUS_STEPS.map((step, i) => {
           const isCompleted = i < activeIndex;
           const isActive = i === activeIndex;
@@ -100,7 +100,7 @@ function ProgressTracker({ status }: { status: string }) {
           }
 
           return (
-            <div key={step.name} className="flex flex-col items-center flex-1 relative z-10">
+            <div key={step.name} className="flex flex-col items-center flex-1">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${dotClass}`}>
                 <StepIcon type={step.icon} isActive={isActive} isDone={isDone} />
               </div>
@@ -110,30 +110,29 @@ function ProgressTracker({ status }: { status: string }) {
             </div>
           );
         })}
+      </div>
 
-        {/* Connector Lines - Now properly aligned */}
-        <div className="absolute top-[15px] left-0 right-0 flex justify-between px-[30px] z-0">
-          {STATUS_STEPS.map((_, i) => {
-            if (i >= STATUS_STEPS.length - 1) return null;
+      {/* Lines Row - 5 Lines for 5 Circles */}
+      <div className="flex mt-2">
+        {Array.from({ length: 5 }).map((_, i) => {
+          // Determine if this line should be active/completed
+          const isLineActive = i < activeIndex; // Lines before active step are filled
 
-            const isCompleted = i < activeIndex;
-            const isActive = i === activeIndex;
-
-            const lineColor = isDone 
+          const lineColor = isDone 
+            ? '#d97706' 
+            : isLineActive 
               ? '#d97706' 
-              : (isCompleted || isActive) 
-                ? '#d97706' 
-                : '#e6dfd5';
+              : '#e6dfd5';
 
-            return (
+          return (
+            <div key={i} className="flex-1 px-1">
               <div 
-                key={`line-${i}`} 
-                className="h-[3px] flex-1 mx-1" 
+                className="h-[3px] rounded-full" 
                 style={{ backgroundColor: lineColor }}
               />
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
