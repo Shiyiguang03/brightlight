@@ -75,8 +75,9 @@ function ProgressTracker({ status }: { status: string }) {
   const isDone = status === 'Completed' || status === 'Done';
 
   return (
-    <div className="mt-6 pt-4">
-      <div className="flex items-start justify-between">
+    <div className="mt-6 pt-2">
+      {/* Circles + Labels */}
+      <div className="flex items-start justify-between relative">
         {STATUS_STEPS.map((step, i) => {
           const isCompleted = i < activeIndex;
           const isActive = i === activeIndex;
@@ -85,40 +86,54 @@ function ProgressTracker({ status }: { status: string }) {
           let textColor = '';
 
           if (isDone) {
-            dotClass = 'bg-green-600 border-2 border-green-600 text-white';
-            textColor = 'text-stone-700';
+            dotClass = 'bg-[#d97706] border-[#d97706] text-white';
+            textColor = 'text-[#453227]';
           } else if (isCompleted) {
-            dotClass = 'bg-amber-600 border-2 border-amber-600 text-white';
-            textColor = 'text-stone-700';
+            dotClass = 'bg-[#d97706] border-[#d97706] text-white';
+            textColor = 'text-[#453227]';
           } else if (isActive) {
-            dotClass = 'bg-amber-50 border-2 border-amber-600 text-amber-700';
-            textColor = 'text-stone-900 font-bold';
+            dotClass = 'bg-[#fef3c7] border-[#d97706] text-[#d97706]';
+            textColor = 'text-[#453227]';
           } else {
-            dotClass = 'bg-stone-100 border-2 border-stone-200 text-stone-400';
-            textColor = 'text-stone-400';
+            dotClass = 'bg-white border-[#e6dfd5] text-[#e6dfd5]';
+            textColor = 'text-[#9f7a5f]';
           }
 
           return (
-            <div key={step.name} className="flex flex-col items-center flex-1">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${dotClass}`}>
+            <div key={step.name} className="flex flex-col items-center flex-1 relative z-10">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${dotClass}`}>
                 <StepIcon type={step.icon} isActive={isActive} isDone={isDone} />
               </div>
-              <span className={`text-xs mt-2 text-center ${textColor}`} style={{ fontSize: '11px' }}>
+              <span className={`text-[10px] font-medium mt-1.5 text-center ${textColor}`}>
                 {step.name}
               </span>
             </div>
           );
         })}
-      </div>
 
-      <div className="flex mt-2">
-        {STATUS_STEPS.map((_, i) => {
-          if (i >= STATUS_STEPS.length - 1) return null;
-          const isCompleted = i < activeIndex;
-          const isActive = i === activeIndex;
-          const connectorClass = isDone ? 'bg-green-500' : (isCompleted || isActive) ? 'bg-amber-500' : 'bg-stone-200';
-          return <div key={`connector-${i}`} className="flex-1 px-1"><div className={`h-1 rounded-full ${connectorClass}`} /></div>;
-        })}
+        {/* Connector Lines - Now properly aligned */}
+        <div className="absolute top-[15px] left-0 right-0 flex justify-between px-[30px] z-0">
+          {STATUS_STEPS.map((_, i) => {
+            if (i >= STATUS_STEPS.length - 1) return null;
+
+            const isCompleted = i < activeIndex;
+            const isActive = i === activeIndex;
+
+            const lineColor = isDone 
+              ? '#d97706' 
+              : (isCompleted || isActive) 
+                ? '#d97706' 
+                : '#e6dfd5';
+
+            return (
+              <div 
+                key={`line-${i}`} 
+                className="h-[3px] flex-1 mx-1" 
+                style={{ backgroundColor: lineColor }}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );
