@@ -14,13 +14,12 @@ export default function BrightLightHome() {
     }
   }, []);
 
-  // Improved login prompt function
+  // Improved login prompt
   const handleProtectedAction = (path: string, message: string) => {
     const user = localStorage.getItem('user');
     if (user) {
       window.location.href = path;
     } else {
-      // More professional prompt
       if (confirm(`${message}\n\nDo you want to login now?`)) {
         window.location.href = '/login';
       }
@@ -56,20 +55,39 @@ export default function BrightLightHome() {
             Watch real-time progress. Pay only when you're happy.
           </p>
 
-          {/* Buttons - Now both solid */}
+          {/* Improved Buttons with Hover Effects */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            
+            {/* Request Repair Now Button */}
             <button 
               onClick={() => handleProtectedAction('/request-repair', 'Please login to submit a repair request.')}
-              className="inline-flex items-center justify-center gap-x-3 text-white font-bold px-8 py-4 rounded-2xl text-lg transition shadow-xl"
+              className="inline-flex items-center justify-center gap-x-3 text-white font-bold px-8 py-4 rounded-2xl text-lg transition-all duration-200 shadow-lg active:scale-[0.985]"
               style={{ backgroundColor: '#d97706' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#b45309';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#d97706';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
               Request Repair Now
             </button>
 
+            {/* Track My Repair Button - Now solid with hover effect */}
             <button 
               onClick={() => handleProtectedAction('/my-repairs', 'Please login to track your repairs.')}
-              className="inline-flex items-center justify-center gap-x-3 font-bold px-8 py-4 rounded-2xl text-lg transition shadow-xl"
-              style={{ backgroundColor: '#453227', color: 'white' }}
+              className="inline-flex items-center justify-center gap-x-3 font-bold px-8 py-4 rounded-2xl text-lg transition-all duration-200 shadow-lg active:scale-[0.985]"
+              style={{ backgroundColor: '#453227', color: 'white', border: '1px solid #5c4436' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#5c4436';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#453227';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
               Track My Repair
             </button>
@@ -149,7 +167,7 @@ export default function BrightLightHome() {
         </div>
       </section>
 
-      {/* NEW: Sales Section */}
+      {/* Sales Section */}
       <section className="max-w-6xl mx-auto px-6 py-16">
         <div className="text-center mb-10">
           <span className="font-bold text-sm" style={{ color: '#b45309' }}>WHAT WE OFFER</span>
