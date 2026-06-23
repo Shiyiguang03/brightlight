@@ -4,9 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase'; // Using shared client
+import { createClient } from '@supabase/supabase-js';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
