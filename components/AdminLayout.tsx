@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import Navbar from '@/components/Navbar';   
+import Navbar from '@/components/Navbar';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -29,16 +29,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#fffbeb' }}>
       
-      {/* Navbar wrapper */}
       <Navbar />
 
-      {/* 
-        1. Added `pt-16` to offset a standard sticky navbar height. 
-        2. Added `h-[calc(100vh-4rem)]` to keep it correctly bounded on the remaining screen.
-      */}
-      <div className="flex flex-1 pt-16 relative h-[calc(100vh-4rem)] overflow-hidden">
+      <div className="flex flex-1 relative">
         
-        {/* Mobile Hamburger Button */}
+        {/* Mobile Hamburger */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="md:hidden fixed top-20 left-4 z-[60] p-2 bg-white rounded-xl shadow border"
@@ -48,13 +43,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </button>
 
         {/* Sidebar */}
-        {/* 
-          Changed `top-0` to `top-16` and adjusted height to `h-[calc(100vh-4rem)]` 
-          so it anchors cleanly beneath the navigation bar instead of overlapping it.
-        */}
         <div 
           className={`
-            fixed md:static top-16 left-0 z-[50] h-[calc(100vh-4rem)] w-64 transform transition-transform duration-300 ease-in-out flex flex-col border-r
+            fixed md:static top-0 left-0 z-[50] h-full w-64 transform transition-transform duration-300 ease-in-out flex flex-col
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           `}
           style={{ 
@@ -62,13 +53,29 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             borderColor: '#e6dfd5' 
           }}
         >
-          <div className="px-5 pb-4 pt-4">
-            <p className="text-xs font-bold tracking-wider px-3" style={{ color: '#9f7a5f' }}>
-              SUPER ADMIN
-            </p>
+          {/* Sidebar Header */}
+          <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: '#e6dfd5' }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>
+                  SUPER ADMIN
+                </p>
+                <p className="text-[10px] font-medium mt-0.5" style={{ color: '#d97706' }}>
+                  Super Admin View
+                </p>
+              </div>
+
+              <Link 
+                href="/admin/view" 
+                className="text-xs px-3 py-1.5 rounded-lg font-medium border transition hover:bg-[#fef3c7]"
+                style={{ borderColor: '#d97706', color: '#d97706' }}
+              >
+                Switch View
+              </Link>
+            </div>
           </div>
 
-          <div className="flex-1 px-3 space-y-6 overflow-y-auto text-sm">
+          <div className="flex-1 px-3 space-y-6 overflow-y-auto text-sm pt-3">
             
             {/* OVERVIEW */}
             <div>
@@ -144,7 +151,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
 
-          <div className="p-4 border-t" style={{ borderColor: '#e6dfd5' }}>
+          <div className="p-4 border-t mt-auto" style={{ borderColor: '#e6dfd5' }}>
             <button 
               onClick={() => {
                 localStorage.removeItem('user');
@@ -158,7 +165,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
 
-        {/* Overlay (Mobile) */}
+        {/* Mobile Overlay */}
         {sidebarOpen && (
           <div 
             className="fixed inset-0 bg-black/30 z-[45] md:hidden"
@@ -166,12 +173,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           />
         )}
 
-        {/* Main Content - Pushed over properly on desktop view */}
-        {/* 
-          Added `overflow-y-auto` to allow content scrolling independent of the nav layout structure.
-        */}
-        <div className="flex-1 flex flex-col overflow-y-auto">
-          <div className="flex-1 p-6 md:p-8">
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 p-5 md:p-6">
             <div className="max-w-7xl mx-auto">
               {children}
             </div>
