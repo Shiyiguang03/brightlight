@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Navbar from '@/components/Navbar'; // ← Your original Navbar
+import Navbar from './Navbar';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -13,124 +13,134 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const isActive = (path: string) => pathname === path;
 
-  // Updated to support a smooth Amber to Terra gradient + glow effects
+  // Active button style (your theme color)
   const navLinkStyle = (path: string) => {
     const active = isActive(path);
     return {
-      background: active ? 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)' : 'transparent',
-      color: active ? '#ffffff' : '#fcd34d', // Brighter, cleaner amber tone for unselected
-      boxShadow: active ? '0 4px 14px 0 rgba(180, 83, 9, 0.4)' : 'none',
+      background: active 
+        ? 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)' 
+        : 'transparent',
+      color: active ? '#ffffff' : '#453227',
+      boxShadow: active ? '0 4px 14px 0 rgba(180, 83, 9, 0.35)' : 'none',
     };
   };
 
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#fffbeb' }}>
       
-      {/* Universal Top Navbar */}
+      {/* Original Top Navbar */}
       <Navbar />
 
       <div className="flex flex-1">
         
-        {/* Softened Deep Terra-Chocolate Sidebar with subtle border separation */}
+        {/* Light Sidebar (White / Off-white) */}
         <div 
-          className="w-64 flex flex-col shrink-0 select-none pt-4 border-r border-[#78350f]/20" 
-          style={{ backgroundColor: '#3f1702', color: '#ffffff' }}
+          className="w-64 flex flex-col shrink-0 border-r pt-2" 
+          style={{ 
+            backgroundColor: '#fffbeb', 
+            borderColor: '#e6dfd5' 
+          }}
         >
-          {/* Navigation Items */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-6 text-sm">
+          {/* Sidebar Header */}
+          <div className="px-5 pb-4">
+            <p className="text-xs font-bold tracking-wider px-3" style={{ color: '#9f7a5f' }}>
+              SUPER ADMIN
+            </p>
+          </div>
+
+          <div className="flex-1 px-3 space-y-6 overflow-y-auto text-sm">
             
-            {/* OVERVIEW SECTION */}
+            {/* OVERVIEW */}
             <div>
-              <p className="px-4 text-xs font-bold tracking-wider text-[#fcd34d]/50 uppercase mb-2">Overview</p>
+              <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#9f7a5f' }}>
+                OVERVIEW
+              </p>
               <nav className="space-y-1">
                 <Link 
                   href="/admin/dashboard" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-white/5 hover:text-white"
+                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/dashboard')}
                 >
-                  <span>📊</span> Dashboard
+                  📊 Dashboard
                 </Link>
               </nav>
             </div>
 
-            {/* MANAGEMENT SECTION */}
+            {/* MANAGEMENT */}
             <div>
-              <p className="px-4 text-xs font-bold tracking-wider text-[#fcd34d]/50 uppercase mb-2">Management</p>
+              <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#9f7a5f' }}>
+                MANAGEMENT
+              </p>
               <nav className="space-y-1">
                 <Link 
                   href="/admin/users" 
-                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-white/5 hover:text-white"
+                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/users')}
                 >
-                  <div className="flex items-center gap-x-3">
-                    <span>👥</span> All Users
-                  </div>
-                  {/* Badge dynamically adapts context based on active state */}
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold transition-colors ${
-                    isActive('/admin/users') ? 'bg-white/20 text-white' : 'bg-[#78350f] text-[#fcd34d]'
-                  }`}>6</span>
+                  <span>👥 All Users</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#fef3c7] text-[#b45309]">6</span>
                 </Link>
+
                 <Link 
                   href="/admin/users/create" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-white/5 hover:text-white"
+                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/users/create')}
                 >
-                  <span>👤+</span> Create Staff / Agent
+                  ➕ Create Staff / Agent
                 </Link>
+
                 <Link 
                   href="/admin/repairs" 
-                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-white/5 hover:text-white"
+                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/repairs')}
                 >
-                  <div className="flex items-center gap-x-3">
-                    <span>🔧</span> Repair Requests
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold transition-colors ${
-                    isActive('/admin/repairs') ? 'bg-white/20 text-white' : 'bg-[#78350f] text-[#fcd34d]'
-                  }`}>6</span>
+                  <span>🔧 Repair Requests</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#fef3c7] text-[#b45309]">6</span>
                 </Link>
               </nav>
             </div>
 
-            {/* SYSTEM SECTION */}
+            {/* SYSTEM */}
             <div>
-              <p className="px-4 text-xs font-bold tracking-wider text-[#fcd34d]/50 uppercase mb-2">System</p>
+              <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#9f7a5f' }}>
+                SYSTEM
+              </p>
               <nav className="space-y-1">
                 <Link 
                   href="/admin/settings" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-white/5 hover:text-white"
+                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/settings')}
                 >
-                  <span>⚙️</span> Settings
+                  ⚙️ Settings
                 </Link>
                 <Link 
-                  href="/admin/logs" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-white/5 hover:text-white"
-                  style={navLinkStyle('/admin/logs')}
+                  href="/admin/activity" 
+                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
+                  style={navLinkStyle('/admin/activity')}
                 >
-                  <span>📈</span> Activity Logs
+                  📈 Activity Logs
                 </Link>
               </nav>
             </div>
           </div>
 
-          {/* Sidebar Footer / Logout */}
-          <div className="p-4 border-t border-[#78350f]/30">
+          {/* Logout */}
+          <div className="p-4 border-t" style={{ borderColor: '#e6dfd5' }}>
             <button 
               onClick={() => {
                 localStorage.removeItem('user');
                 window.location.href = '/login';
               }}
-              className="w-full text-left px-4 py-2.5 text-sm font-bold text-amber-300 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200"
+              className="w-full flex items-center gap-x-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all hover:bg-red-50"
+              style={{ color: '#b45309' }}
             >
               🚪 Logout
             </button>
           </div>
         </div>
 
-        {/* Main Content Workspace */}
+        {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          {/* Main Dashboard Content Area */}
           <div className="flex-1 p-8 overflow-auto">
             {children}
           </div>
