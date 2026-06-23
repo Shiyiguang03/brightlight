@@ -10,6 +10,7 @@ export async function GET() {
         user: {
           select: {
             fullName: true,
+            phone: true,
           },
         },
       },
@@ -20,9 +21,9 @@ export async function GET() {
 
     return NextResponse.json(repairs);
   } catch (error) {
-    console.error('Error fetching repairs:', error);
+    console.error('Error in /api/admin/repairs:', error);
     return NextResponse.json(
-      { message: 'Failed to fetch repair requests' },
+      { message: 'Failed to fetch repairs', error: String(error) },
       { status: 500 }
     );
   }
