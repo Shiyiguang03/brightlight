@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import AdminLayout from '@/components/AdminLayout'; // We can change this later to a StaffLayout
+import AdminLayout from '@/components/AdminLayout';
 
 interface Repair {
   id: number;
@@ -21,23 +21,56 @@ interface Repair {
 export default function StaffDashboard() {
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetch('/api/admin/repairs')
-      .then(res => res.json())
-      .then(data => {
-        setRepairs(data);
-        setLoading(false);
-      });
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch repairs');
+        }
+        const data = await res.json();
+
+        // Safety check - make sure it's an array
+        if (Array.isArray(data)) {
+          setRepairs(data);
+        } else {
+          setError('Invalid data format from server');
+          console.error('API did not return an array:', data);
+        }
+      })
+      .catch((err) => {
+        setError('Failed to load repair requests');
+        console.error(err);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-8">Loading...</div>;
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="p-8 text-center">Loading repair requests...</div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="p-8 text-center text-red-600">{error}</div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: '#453227' }}>Staff Dashboard</h1>
-        <p className="mb-6" style={{ color: '#7c6251' }}>Manage all customer repair requests</p>
+        <h1 className="text-3xl font-bold mb-2" style={{ color: '#453227' }}>
+          Staff Dashboard
+        </h1>
+        <p className="mb-6" style={{ color: '#7c6251' }}>
+          Manage all customer repair requests
+        </p>
 
         <div className="bg-white border rounded-2xl overflow-hidden" style={{ borderColor: '#e6dfd5' }}>
           <table className="w-full">
@@ -54,13 +87,20 @@ export default function StaffDashboard() {
             </thead>
             <tbody>
               {repairs.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8">No repair requests yet.</td></tr>
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-[#7c6251]">
+                    No repair requests yet.
+                  </td>
+                </tr>
               ) : (
                 repairs.map((repair) => (
                   <tr key={repair.id} className="border-t hover:bg-[#fefce8]">
-                    <td className="px-6 py-4 font-mono">WO-{String(repair.id).padStart(3, '0')}</td>
+                    <td className="px-6 py-4 font-mono">
+                      WO-{String(repair.id).padStart(3, '0')}
+                    </td>
                     <td className="px-6 py-4">
-                      {repair.user.fullName}<br />
+                      {repair.user.fullName}
+                      <br />
                       <span className="text-sm text-[#7c6251]">{repair.user.phone}</span>
                     </td>
                     <td className="px-6 py-4">{repair.brand} {repair.model}</td>
