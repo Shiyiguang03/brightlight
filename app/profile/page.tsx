@@ -3,15 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { supabase } from '@/lib/supabase'; // Using shared client
 import { createClient } from '@supabase/supabase-js';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -22,6 +17,12 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
+
+  // Create Supabase client inside component (safer)
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -56,7 +57,6 @@ export default function ProfilePage() {
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${user.id || Date.now()}-${Math.random()}.${fileExt}`;
 
-      // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('profile-pictures')
         .upload(fileName, selectedFile);
@@ -73,7 +73,6 @@ export default function ProfilePage() {
 
       const imageUrl = urlData.publicUrl;
 
-      // Save to database
       const res = await fetch('/api/update-profile-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,16 +89,13 @@ export default function ProfilePage() {
         return;
       }
 
-      // Update localStorage
       const updatedUser = { ...user, profileImage: imageUrl };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setProfileImage(imageUrl);
 
-      // Notify Navbar to update automatically
       window.dispatchEvent(new Event('profile-updated'));
 
-      // Clear selection
       setSelectedFile(null);
       setPreviewUrl(null);
 
@@ -112,13 +108,11 @@ export default function ProfilePage() {
     setUploading(false);
   };
 
-  // Cancel photo selection
   const handleCancelSelection = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
   };
 
-  // Remove current profile picture
   const handleRemovePhoto = async () => {
     if (!user) return;
 
@@ -137,14 +131,12 @@ export default function ProfilePage() {
       setUser(updatedUser);
       setProfileImage(null);
 
-      // Notify Navbar
       window.dispatchEvent(new Event('profile-updated'));
     } catch (err) {
       alert('Failed to remove photo');
     }
   };
 
-  // Change Password
   const handleChangePassword = () => {
     setPasswordMessage('');
 
@@ -199,7 +191,6 @@ export default function ProfilePage() {
             <h3 className="font-semibold mb-4" style={{ color: '#453227' }}>Profile Picture</h3>
             
             <div className="flex flex-col md:flex-row items-start gap-6">
-              {/* Photo Display / Preview */}
               <div className="w-24 h-24 rounded-full overflow-hidden border-2 flex-shrink-0" style={{ borderColor: '#e6dfd5' }}>
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -212,7 +203,6 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex-1">
                 {!selectedFile ? (
                   <div className="flex flex-wrap gap-3">
@@ -233,7 +223,6 @@ export default function ProfilePage() {
                     )}
                   </div>
                 ) : (
-                  /* Preview Mode */
                   <div className="flex flex-wrap gap-3">
                     <button 
                       onClick={handleUploadPhoto} 
@@ -345,3 +334,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+// ✅ This fixes the prerender/build error
+export const dynamic = 'force-dynamic';
