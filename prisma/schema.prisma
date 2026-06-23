@@ -41,7 +41,7 @@ model RepairRequest {
   preferredStartDate  DateTime?
   preferredEndDate    DateTime?
   status              String    @default("Pending")
-  notes               String?
+  
   images              String[]  @default([])
   
   createdAt           DateTime  @default(now())
