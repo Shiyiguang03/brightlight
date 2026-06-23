@@ -3,14 +3,6 @@
 import Navbar from '@/components/Navbar';
 import { useState } from 'react';
 
-const roles = [
-  'CUSTOMER',
-  'AGENT',
-  'STAFF',
-  'MANAGEMENT',
-  'SUPER ADMIN',
-];
-
 const countries = [
   { code: '+60', name: 'Malaysia' },
   { code: '+65', name: 'Singapore' },
@@ -19,7 +11,6 @@ const countries = [
 ];
 
 export default function RegisterPage() {
-  const [selectedRole, setSelectedRole] = useState('CUSTOMER');
   const [countryCode, setCountryCode] = useState('+60');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -51,7 +42,7 @@ export default function RegisterPage() {
           phone: countryCode + phone.replace(/\s+/g, ''),
           email: email || null,
           password,
-          role: selectedRole,
+          role: 'CUSTOMER', // ← Default to CUSTOMER only
         }),
       });
 
@@ -96,42 +87,6 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleRegister} className="space-y-5">
-
-              {/* Role Selection */}
-              <div className="mb-2">
-                <label className="block text-xs font-bold tracking-wider mb-3" style={{ color: '#9f7a5f' }}>
-                  I AM A...
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {roles.map((role) => {
-                    const isSuperAdmin = role === 'SUPER ADMIN';
-                    const isSelected = selectedRole === role;
-
-                    return (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => setSelectedRole(role)}
-                        style={{
-                          gridColumn: isSuperAdmin ? 'span 2' : 'auto',
-                          padding: '14px 12px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '700',
-                          letterSpacing: '0.05em',
-                          cursor: 'pointer',
-                          border: isSelected ? '1px solid #d97706' : '1px solid #e6dfd5',
-                          backgroundColor: isSelected ? '#d97706' : '#ffffff',
-                          color: isSelected ? '#ffffff' : '#453227',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {role}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
 
               {/* Full Name */}
               <div>

@@ -3,16 +3,7 @@
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
 
-const roles = [
-  'CUSTOMER',
-  'AGENT',
-  'STAFF',
-  'MANAGEMENT',
-  'SUPER ADMIN',
-];
-
 export default function LoginPage() {
-  const [selectedRole, setSelectedRole] = useState('CUSTOMER');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
 
@@ -97,42 +88,6 @@ export default function LoginPage() {
               <p className="text-sm mt-1" style={{ color: '#7c6251' }}>
                 Sign in to Bright Light Technology Services
               </p>
-            </div>
-
-            {/* Role Selection */}
-            <div className="mb-6">
-              <label className="block text-xs font-bold tracking-wider mb-3" style={{ color: '#9f7a5f' }}>
-                I AM LOGGING IN AS...
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                {roles.map((role) => {
-                  const isSuperAdmin = role === 'SUPER ADMIN';
-                  const isSelected = selectedRole === role;
-                  
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setSelectedRole(role)}
-                      style={{
-                        gridColumn: isSuperAdmin ? 'span 2' : 'auto',
-                        padding: '14px 12px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: '700',
-                        letterSpacing: '0.05em',
-                        cursor: 'pointer',
-                        border: isSelected ? '1px solid #d97706' : '1px solid #e6dfd5',
-                        backgroundColor: isSelected ? '#d97706' : '#ffffff',
-                        color: isSelected ? '#ffffff' : '#453227',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {role}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             <form onSubmit={handleLogin}>
