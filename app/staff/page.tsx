@@ -12,10 +12,6 @@ interface Repair {
   problemDescription: string;
   status: string;
   createdAt: string;
-  user: {
-    fullName: string;
-    phone: string;
-  };
 }
 
 export default function StaffDashboard() {
@@ -26,40 +22,25 @@ export default function StaffDashboard() {
   useEffect(() => {
     fetch('/api/admin/repairs')
       .then(async (res) => {
-        if (!res.ok) {
-          throw new Error('Failed to fetch repairs');
-        }
+        if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
 
-        // Safety check - make sure it's an array
         if (Array.isArray(data)) {
           setRepairs(data);
         } else {
-          setError('Invalid data format from server');
-          console.error('API did not return an array:', data);
+          setError('Data format is invalid');
         }
       })
-      .catch((err) => {
-        setError('Failed to load repair requests');
-        console.error(err);
-      })
+      .catch(() => setError('Failed to load repair requests'))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
-    return (
-      <AdminLayout>
-        <div className="p-8 text-center">Loading repair requests...</div>
-      </AdminLayout>
-    );
+    return <AdminLayout><div className="p-8 text-center">Loading...</div></AdminLayout>;
   }
 
   if (error) {
-    return (
-      <AdminLayout>
-        <div className="p-8 text-center text-red-600">{error}</div>
-      </AdminLayout>
-    );
+    return <AdminLayout><div className="p-8 text-center text-red-600">{error}</div></AdminLayout>;
   }
 
   return (
@@ -77,7 +58,6 @@ export default function StaffDashboard() {
             <thead>
               <tr className="bg-[#fef3c7]">
                 <th className="text-left px-6 py-4 font-semibold">WO #</th>
-                <th className="text-left px-6 py-4 font-semibold">Customer</th>
                 <th className="text-left px-6 py-4 font-semibold">Device</th>
                 <th className="text-left px-6 py-4 font-semibold">Problem</th>
                 <th className="text-left px-6 py-4 font-semibold">Status</th>
@@ -88,7 +68,7 @@ export default function StaffDashboard() {
             <tbody>
               {repairs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-[#7c6251]">
+                  <td colSpan={6} className="text-center py-8 text-[#7c6251]">
                     No repair requests yet.
                   </td>
                 </tr>
@@ -97,11 +77,6 @@ export default function StaffDashboard() {
                   <tr key={repair.id} className="border-t hover:bg-[#fefce8]">
                     <td className="px-6 py-4 font-mono">
                       WO-{String(repair.id).padStart(3, '0')}
-                    </td>
-                    <td className="px-6 py-4">
-                      {repair.user.fullName}
-                      <br />
-                      <span className="text-sm text-[#7c6251]">{repair.user.phone}</span>
                     </td>
                     <td className="px-6 py-4">{repair.brand} {repair.model}</td>
                     <td className="px-6 py-4">{repair.problemDescription}</td>
