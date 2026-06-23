@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Navbar from './Navbar';
+import { useState } from 'react';
+import Navbar from '@/components/Navbar';   
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -10,10 +11,10 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isActive = (path: string) => pathname === path;
 
-  // Active button style (your theme color)
   const navLinkStyle = (path: string) => {
     const active = isActive(path);
     return {
@@ -28,21 +29,40 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#fffbeb' }}>
       
-      {/* Original Top Navbar */}
+      {/* Navbar wrapper */}
       <Navbar />
 
-      <div className="flex flex-1">
+      {/* 
+        1. Added `pt-16` to offset a standard sticky navbar height. 
+        2. Added `h-[calc(100vh-4rem)]` to keep it correctly bounded on the remaining screen.
+      */}
+      <div className="flex flex-1 pt-16 relative h-[calc(100vh-4rem)] overflow-hidden">
         
-        {/* Light Sidebar (White / Off-white) */}
+        {/* Mobile Hamburger Button */}
+        <button 
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="md:hidden fixed top-20 left-4 z-[60] p-2 bg-white rounded-xl shadow border"
+          style={{ borderColor: '#e6dfd5' }}
+        >
+          ☰
+        </button>
+
+        {/* Sidebar */}
+        {/* 
+          Changed `top-0` to `top-16` and adjusted height to `h-[calc(100vh-4rem)]` 
+          so it anchors cleanly beneath the navigation bar instead of overlapping it.
+        */}
         <div 
-          className="w-64 flex flex-col shrink-0 border-r pt-2" 
+          className={`
+            fixed md:static top-16 left-0 z-[50] h-[calc(100vh-4rem)] w-64 transform transition-transform duration-300 ease-in-out flex flex-col border-r
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          `}
           style={{ 
             backgroundColor: '#fffbeb', 
             borderColor: '#e6dfd5' 
           }}
         >
-          {/* Sidebar Header */}
-          <div className="px-5 pb-4">
+          <div className="px-5 pb-4 pt-4">
             <p className="text-xs font-bold tracking-wider px-3" style={{ color: '#9f7a5f' }}>
               SUPER ADMIN
             </p>
@@ -58,7 +78,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <nav className="space-y-1">
                 <Link 
                   href="/admin/dashboard" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
+                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/dashboard')}
                 >
                   📊 Dashboard
@@ -74,7 +94,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <nav className="space-y-1">
                 <Link 
                   href="/admin/users" 
-                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
+                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/users')}
                 >
                   <span>👥 All Users</span>
@@ -83,7 +103,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
                 <Link 
                   href="/admin/users/create" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
+                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/users/create')}
                 >
                   ➕ Create Staff / Agent
@@ -91,7 +111,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
                 <Link 
                   href="/admin/repairs" 
-                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
+                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/repairs')}
                 >
                   <span>🔧 Repair Requests</span>
@@ -108,14 +128,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <nav className="space-y-1">
                 <Link 
                   href="/admin/settings" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
+                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/settings')}
                 >
                   ⚙️ Settings
                 </Link>
                 <Link 
                   href="/admin/activity" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:bg-[#fef3c7]"
+                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
                   style={navLinkStyle('/admin/activity')}
                 >
                   📈 Activity Logs
@@ -124,7 +144,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
 
-          {/* Logout */}
           <div className="p-4 border-t" style={{ borderColor: '#e6dfd5' }}>
             <button 
               onClick={() => {
@@ -139,10 +158,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 p-8 overflow-auto">
-            {children}
+        {/* Overlay (Mobile) */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/30 z-[45] md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Main Content - Pushed over properly on desktop view */}
+        {/* 
+          Added `overflow-y-auto` to allow content scrolling independent of the nav layout structure.
+        */}
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="flex-1 p-6 md:p-8">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
           </div>
         </div>
       </div>
