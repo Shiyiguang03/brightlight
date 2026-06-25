@@ -30,15 +30,23 @@ export default function StaffRepairDetail() {
   }, [id]);
 
   const fetchRepair = async () => {
-    const res = await fetch(`/api/admin/repairs`);
-    const data = await res.json();
-    const found = data.find((r: any) => r.id === parseInt(id));
-    if (found) {
-      setRepair(found);
-      setStatus(found.status);
-      setNotes(found.notes || '');
+    try {
+      const res = await fetch('/api/admin/repairs');
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        const found = data.find((r: any) => r.id === parseInt(id));
+        if (found) {
+          setRepair(found);
+          setStatus(found.status || 'Pending');
+          setNotes(found.notes || '');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch repair:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleUpdate = async () => {
@@ -58,8 +66,13 @@ export default function StaffRepairDetail() {
     }
   };
 
-  if (loading) return <div className="p-8">Loading...</div>;
-  if (!repair) return <div className="p-8">Repair not found.</div>;
+  if (loading) {
+    return <AdminLayout><div className="p-8">Loading...</div></AdminLayout>;
+  }
+
+  if (!repair) {
+    return <AdminLayout><div className="p-8">Repair not found.</div></AdminLayout>;
+  }
 
   return (
     <AdminLayout>
@@ -67,13 +80,16 @@ export default function StaffRepairDetail() {
         <h1 className="text-3xl font-bold mb-2" style={{ color: '#453227' }}>
           Work Order #WO-{String(repair.id).padStart(3, '0')}
         </h1>
+
+        {/* Safe user display */}
         <p className="mb-6" style={{ color: '#7c6251' }}>
-          {repair.user.fullName} • {repair.user.phone}
+          {repair.user?.fullName || 'Unknown Customer'} 
+          {repair.user?.phone && ` • ${repair.user.phone}`}
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Left: Repair Details */}
+          {/* Left Side - Device Info */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
               <h3 className="font-bold mb-4">Device Information</h3>
@@ -84,14 +100,9 @@ export default function StaffRepairDetail() {
                 <div><strong>Problem:</strong> {repair.problemDescription}</div>
               </div>
             </div>
-
-            <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
-              <h3 className="font-bold mb-4">Additional Info</h3>
-              <p className="text-sm whitespace-pre-wrap">{repair.notes || 'No notes yet.'}</p>
-            </div>
           </div>
 
-          {/* Right: Status & Notes */}
+          {/* Right Side - Status & Notes */}
           <div className="space-y-6">
             <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
               <h3 className="font-bold mb-4">Update Status</h3>

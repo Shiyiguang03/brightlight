@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }   // ← Changed here
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;           // ← Must await params
+    const { id } = await params;
     const repairId = parseInt(id);
 
     const body = await request.json();
@@ -17,15 +17,15 @@ export async function PATCH(
       where: { id: repairId },
       data: {
         status: body.status,
-        notes: body.notes ?? undefined,
+        // notes removed temporarily because the field doesn't exist in schema
       },
     });
 
     return NextResponse.json(updatedRepair);
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("Error updating repair:", error);
     return NextResponse.json(
-      { message: 'Failed to update repair' },
+      { message: "Failed to update repair", error: error.message },
       { status: 500 }
     );
   }
