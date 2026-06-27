@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { normalizePhoneNumber } from '@/lib/phone';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';   // ✅ Import from central Prisma client
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,13 +52,12 @@ export async function POST(request: NextRequest) {
         phone: user.phone,
         email: user.email,
         role: user.role,
-        // profileImage may not exist on the Prisma User type in some schemas
         profileImage: 'profileImage' in user ? (user as any).profileImage : null,
       },
     });
 
   } catch (error) {
-    console.error(error);
+    console.error('Login error:', error);
     return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
   }
 }
