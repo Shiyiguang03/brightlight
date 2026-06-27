@@ -24,7 +24,7 @@ export async function GET(
             fullName: true,
             phone: true,
             email: true,
-            address: true,
+            address: true,        // ✅ Now included
           },
         },
       },
@@ -60,7 +60,7 @@ export async function PATCH(
       where: { id: repairId },
       data: {
         status: body.status,
-        internalNotes: body.notes,           // ✅ Fixed: notes → internalNotes
+        internalNotes: body.notes,
         hasCharger: body.hasCharger,
         hasPowerCord: body.hasPowerCord,
         hasMouse: body.hasMouse,

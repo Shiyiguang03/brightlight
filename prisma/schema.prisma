@@ -54,4 +54,6 @@ model RepairRequest {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  address            String?
 }
