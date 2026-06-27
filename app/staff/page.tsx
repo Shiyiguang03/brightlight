@@ -12,112 +12,146 @@ interface Repair {
   problemDescription: string;
   status: string;
   createdAt: string;
+  customerName?: string;
 }
 
-export default function StaffDashboard() {
+export default function StaffRepairsPage() {
   const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [filteredRepairs, setFilteredRepairs] = useState<Repair[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Fetch all repairs
   useEffect(() => {
-    fetch('/api/admin/repairs')
+    fetch('/api/admin/repairs?limit=100')
       .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setRepairs(data);
+      .then(result => {
+        if (result.data && Array.isArray(result.data)) {
+          setRepairs(result.data);
+          setFilteredRepairs(result.data);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const total = repairs.length;
-  const pending = repairs.filter(r => r.status === 'Pending').length;
-  const inProgress = repairs.filter(r => r.status === 'In Progress').length;
-  const completed = repairs.filter(r => r.status === 'Completed').length;
+  // Filter repairs when search term changes
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredRepairs(repairs);
+      return;
+    }
 
-  const recentRepairs = [...repairs]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 6);
+    const term = searchTerm.toLowerCase();
+    const filtered = repairs.filter(repair =>
+      repair.brand?.toLowerCase().includes(term) ||
+      repair.model?.toLowerCase().includes(term) ||
+      repair.deviceType?.toLowerCase().includes(term) ||
+      repair.problemDescription?.toLowerCase().includes(term) ||
+      repair.customerName?.toLowerCase().includes(term) ||
+      repair.status?.toLowerCase().includes(term)
+    );
+    setFilteredRepairs(filtered);
+  }, [searchTerm, repairs]);
 
   return (
     <AdminLayout>
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: '#453227' }}>
-          Welcome back, Staff 👋
-        </h1>
-        <p className="mb-6" style={{ color: '#7c6251' }}>
-          Here's an overview of all repair requests.
-        </p>
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold" style={{ color: '#453227' }}>
+            All Repair Requests
+          </h1>
+          <p className="mt-1" style={{ color: '#7c6251' }}>
+            Manage and track all customer repair requests
+          </p>
+        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
-            <p className="text-sm font-bold" style={{ color: '#9f7a5f' }}>TOTAL REPAIRS</p>
-            <p className="text-4xl font-bold mt-1" style={{ color: '#453227' }}>{total}</p>
+        {/* Search Bar */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Search by brand, model, device, problem, or status..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-3 rounded-2xl border text-sm placeholder:text-[#5c4436] placeholder:font-medium"
+            style={{ 
+              borderColor: '#e6dfd5', 
+              backgroundColor: '#ffffff' 
+            }}
+          />
+        </div>
+
+        {/* Stats Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white border rounded-2xl p-4" style={{ borderColor: '#e6dfd5' }}>
+            <p className="text-xs font-bold" style={{ color: '#9f7a5f' }}>TOTAL</p>
+            <p className="text-2xl font-bold" style={{ color: '#453227' }}>{repairs.length}</p>
           </div>
-          <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
-            <p className="text-sm font-bold" style={{ color: '#9f7a5f' }}>PENDING</p>
-            <p className="text-4xl font-bold mt-1" style={{ color: '#d97706' }}>{pending}</p>
+          <div className="bg-white border rounded-2xl p-4" style={{ borderColor: '#e6dfd5' }}>
+            <p className="text-xs font-bold" style={{ color: '#9f7a5f' }}>PENDING</p>
+            <p className="text-2xl font-bold" style={{ color: '#d97706' }}>
+              {repairs.filter(r => r.status === 'Pending').length}
+            </p>
           </div>
-          <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
-            <p className="text-sm font-bold" style={{ color: '#9f7a5f' }}>IN PROGRESS</p>
-            <p className="text-4xl font-bold mt-1" style={{ color: '#2563eb' }}>{inProgress}</p>
+          <div className="bg-white border rounded-2xl p-4" style={{ borderColor: '#e6dfd5' }}>
+            <p className="text-xs font-bold" style={{ color: '#9f7a5f' }}>IN PROGRESS</p>
+            <p className="text-2xl font-bold" style={{ color: '#2563eb' }}>
+              {repairs.filter(r => r.status === 'In Progress').length}
+            </p>
           </div>
-          <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
-            <p className="text-sm font-bold" style={{ color: '#9f7a5f' }}>COMPLETED</p>
-            <p className="text-4xl font-bold mt-1" style={{ color: '#16a34a' }}>{completed}</p>
+          <div className="bg-white border rounded-2xl p-4" style={{ borderColor: '#e6dfd5' }}>
+            <p className="text-xs font-bold" style={{ color: '#9f7a5f' }}>COMPLETED</p>
+            <p className="text-2xl font-bold" style={{ color: '#16a34a' }}>
+              {repairs.filter(r => r.status === 'Completed').length}
+            </p>
           </div>
         </div>
 
-        {/* Recent Repairs */}
-        <div className="bg-white border rounded-3xl p-6" style={{ borderColor: '#e6dfd5' }}>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold" style={{ color: '#453227' }}>Recent Repair Requests</h2>
-            <Link href="/staff" className="text-sm font-semibold" style={{ color: '#d97706' }}>
-              View All →
-            </Link>
+        {/* Repairs List */}
+        {loading ? (
+          <div className="text-center py-12">Loading repairs...</div>
+        ) : filteredRepairs.length === 0 ? (
+          <div className="bg-white border rounded-3xl p-8 text-center" style={{ borderColor: '#e6dfd5' }}>
+            <p style={{ color: '#7c6251' }}>No repair requests found.</p>
           </div>
-
-          {loading ? (
-            <p className="text-center py-10">Loading...</p>
-          ) : recentRepairs.length === 0 ? (
-            <p className="text-center py-10">No repair requests yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentRepairs.map((repair) => (
-                <div key={repair.id} className="border rounded-2xl p-5" style={{ borderColor: '#e6dfd5' }}>
-                  <div className="flex justify-between">
-                    <div>
-                      <p className="font-mono text-sm" style={{ color: '#9f7a5f' }}>
-                        WO-{String(repair.id).padStart(3, '0')}
-                      </p>
-                      <p className="font-semibold mt-1" style={{ color: '#453227' }}>
-                        {repair.brand} {repair.model}
-                      </p>
-                    </div>
-                    <span className="text-xs px-3 py-1 h-fit rounded-full font-medium bg-[#fef3c7] text-[#b45309]">
-                      {repair.status}
-                    </span>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredRepairs.map((repair) => (
+              <div key={repair.id} className="bg-white border rounded-2xl p-5" style={{ borderColor: '#e6dfd5' }}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-mono text-sm" style={{ color: '#9f7a5f' }}>
+                      WO-{String(repair.id).padStart(3, '0')}
+                    </p>
+                    <p className="font-semibold mt-1 text-lg" style={{ color: '#453227' }}>
+                      {repair.brand} {repair.model}
+                    </p>
                   </div>
-
-                  <p className="text-sm mt-3 line-clamp-2" style={{ color: '#7c6251' }}>
-                    {repair.problemDescription}
-                  </p>
-
-                  <div className="mt-4 flex justify-between items-center">
-                    <span className="text-xs" style={{ color: '#9f7a5f' }}>
-                      {new Date(repair.createdAt).toLocaleDateString()}
-                    </span>
-                    <Link 
-                      href={`/staff/repair/${repair.id}`}
-                      className="px-5 py-1.5 text-sm font-semibold rounded-xl text-white"
-                      style={{ backgroundColor: '#d97706' }}
-                    >
-                      Manage
-                    </Link>
-                  </div>
+                  <span className="text-xs px-3 py-1 rounded-full font-medium bg-[#fef3c7] text-[#b45309]">
+                    {repair.status}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+
+                <p className="text-sm mt-3 line-clamp-2" style={{ color: '#7c6251' }}>
+                  {repair.problemDescription}
+                </p>
+
+                <div className="mt-4 flex justify-between items-center">
+                  <span className="text-xs" style={{ color: '#9f7a5f' }}>
+                    {new Date(repair.createdAt).toLocaleDateString()}
+                  </span>
+                  <Link 
+                    href={`/staff/repair/${repair.id}`}
+                    className="px-5 py-1.5 text-sm font-semibold rounded-xl text-white transition hover:opacity-90"
+                    style={{ backgroundColor: '#d97706' }}
+                  >
+                    Manage
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

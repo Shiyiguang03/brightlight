@@ -19,15 +19,16 @@ export default function SuperAdminDashboard() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/admin/repairs')
+    fetch('/api/admin/repairs?limit=4')
       .then(async (res) => {
         if (!res.ok) {
           throw new Error('Failed to fetch repairs');
         }
-        const data = await res.json();
-        
-        if (Array.isArray(data)) {
-          setRecentActivity(data.slice(0, 4)); // show latest 4
+        const result = await res.json();
+
+        // ✅ Handle new API response format { data: [...], pagination: {...} }
+        if (result.data && Array.isArray(result.data)) {
+          setRecentActivity(result.data);
         } else {
           setRecentActivity([]);
         }
@@ -53,7 +54,7 @@ export default function SuperAdminDashboard() {
           </p>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards (Hardcoded for now) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
             <p className="text-sm font-bold tracking-wider" style={{ color: '#9f7a5f' }}>TOTAL CUSTOMERS</p>

@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // ✅ Fix for Next.js 15: await params
     const { id } = await params;
     const repairId = parseInt(id);
 
@@ -26,6 +23,8 @@ export async function GET(
           select: {
             fullName: true,
             phone: true,
+            email: true,
+            address: true,
           },
         },
       },
@@ -43,6 +42,38 @@ export async function GET(
     console.error('Error fetching repair request:', error);
     return NextResponse.json(
       { message: 'Failed to fetch repair request', error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const repairId = parseInt(id);
+    const body = await request.json();
+
+    const updated = await prisma.repairRequest.update({
+      where: { id: repairId },
+      data: {
+        status: body.status,
+        internalNotes: body.notes,           // ✅ Fixed: notes → internalNotes
+        hasCharger: body.hasCharger,
+        hasPowerCord: body.hasPowerCord,
+        hasMouse: body.hasMouse,
+        hasBag: body.hasBag,
+        otherItems: body.otherItems,
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) {
+    console.error('PATCH Error:', error);
+    return NextResponse.json(
+      { message: 'Update failed', error: error.message },
       { status: 500 }
     );
   }
