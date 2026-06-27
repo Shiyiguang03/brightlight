@@ -19,6 +19,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+ address       String?
   // Requests where this user is the customer
   repairRequests RepairRequest[]
 
@@ -55,5 +56,4 @@ model RepairRequest {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  address            String?
 }
