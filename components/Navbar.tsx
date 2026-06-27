@@ -13,6 +13,14 @@ const ALL_MENU_ITEMS = [
   { label: 'Submit New Request', href: '/request-repair' },
 ];
 
+// Public menu items for non-logged in users
+const PUBLIC_MENU_ITEMS = [
+  { label: 'Home Page', href: '/' },
+  { label: 'How it Works', href: '/#how' },
+  { label: 'Services', href: '/#services' },
+  { label: 'Submit Repair Request', href: '/request-repair' },
+];
+
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -90,7 +98,6 @@ export default function Navbar() {
       ];
     }
 
-    // For STAFF, SUPER ADMIN, AGENT
     return [
       { label: 'Staff Dashboard', href: '/staff' },
     ];
@@ -103,7 +110,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo */}
+          {/* Logo + Desktop Links */}
           <div className="flex items-center gap-x-6">
             <Link href="/" className="flex items-center gap-x-3 shrink-0">
               <img src="/images/logo.jpg" alt="Bright Light Logo" className="h-10 w-auto object-contain" />
@@ -129,9 +136,9 @@ export default function Navbar() {
           </div>
 
           {/* Right Side */}
-          <div className="flex items-center gap-x-4">
+          <div className="flex items-center gap-x-3">
             
-            {/* Live Agent */}
+            {/* Live Agent Button */}
             <a 
               href="https://wa.me/60123456789" 
               target="_blank"
@@ -141,7 +148,18 @@ export default function Navbar() {
               Live Agent
             </a>
 
-            {/* User Profile */}
+            {/* Login Button - Show only when NOT logged in */}
+            {!user && (
+              <Link 
+                href="/login"
+                className="hidden md:flex items-center px-5 py-2 text-sm font-semibold rounded-xl border transition hover:bg-[#fef3c7]"
+                style={{ color: '#453227', borderColor: '#e6dfd5' }}
+              >
+                Login
+              </Link>
+            )}
+
+            {/* User Profile (when logged in) */}
             {user && (
               <Link 
                 href="/profile" 
@@ -189,7 +207,7 @@ export default function Navbar() {
                     </>
                   )}
 
-                  {/* Staff Dashboard - For Staff & Super Admin */}
+                  {/* Staff Dashboard */}
                   {(user?.role === 'STAFF' || user?.role === 'SUPER ADMIN') && (
                     <Link
                       href="/staff"
@@ -201,7 +219,7 @@ export default function Navbar() {
                     </Link>
                   )}
 
-                  {/* Normal Menu Items (for customers) */}
+                  {/* Menu for LOGGED IN users */}
                   {user?.role === 'CUSTOMER' && ALL_MENU_ITEMS.map((item) => (
                     <Link
                       key={item.href}
@@ -213,6 +231,34 @@ export default function Navbar() {
                       {item.label}
                     </Link>
                   ))}
+
+                  {/* Menu for NON-LOGGED IN users (Public) */}
+                  {!user && PUBLIC_MENU_ITEMS.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2.5 text-sm font-medium transition hover:bg-[#fef3c7]"
+                      style={{ color: isActive(item.href) ? '#d97706' : '#453227' }}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+
+                  {/* Login button inside menu for non-logged in users */}
+                  {!user && (
+                    <>
+                      <div className="border-t my-1" style={{ borderColor: '#f1f5f9' }}></div>
+                      <Link
+                        href="/login"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="block px-4 py-2.5 text-sm font-semibold transition hover:bg-[#fef3c7]"
+                        style={{ color: '#d97706' }}
+                      >
+                        Login
+                      </Link>
+                    </>
+                  )}
 
                   {/* Logout */}
                   {user && (
