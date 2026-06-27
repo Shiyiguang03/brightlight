@@ -76,7 +76,6 @@ function ProgressTracker({ status }: { status: string }) {
 
   return (
     <div className="mt-6 pt-4">
-      {/* Circles Row */}
       <div className="flex items-start justify-between">
         {STATUS_STEPS.map((step, i) => {
           const isCompleted = i < activeIndex;
@@ -112,30 +111,33 @@ function ProgressTracker({ status }: { status: string }) {
         })}
       </div>
 
-      {/* Lines Row - 5 Lines for 5 Circles */}
       <div className="flex mt-2">
         {Array.from({ length: 5 }).map((_, i) => {
-          // Determine if this line should be active/completed
-          const isLineActive = i < activeIndex; // Lines before active step are filled
-
-          const lineColor = isDone 
-            ? '#d97706' 
-            : isLineActive 
-              ? '#d97706' 
-              : '#e6dfd5';
+          const isLineActive = i < activeIndex;
+          const lineColor = isDone ? '#d97706' : isLineActive ? '#d97706' : '#e6dfd5';
 
           return (
             <div key={i} className="flex-1 px-1">
-              <div 
-                className="h-[3px] rounded-full" 
-                style={{ backgroundColor: lineColor }}
-              />
+              <div className="h-[3px] rounded-full" style={{ backgroundColor: lineColor }} />
             </div>
           );
         })}
       </div>
     </div>
   );
+}
+
+// ✅ NEW: Helper function to format date + time nicely
+function formatDateTime(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-MY', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
 }
 
 export default function MyRepairsPage() {
@@ -165,7 +167,6 @@ export default function MyRepairsPage() {
       <div style={{ padding: '48px 16px' }}>
         <div style={{ width: '100%', maxWidth: '700px', margin: '0 auto' }}>
 
-          {/* Fully separated flex header layout */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4" style={{ marginBottom: '36px' }}>
             <div>
               <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#453227', margin: '0 0 4px' }}>
@@ -198,7 +199,6 @@ export default function MyRepairsPage() {
             </Link>
           </div>
 
-          {/* List Content */}
           {loading ? (
             <div style={{ textAlign: 'center', padding: '60px 0', color: '#7c6251', fontSize: '14px' }}>
               Loading your repair requests…
@@ -234,7 +234,6 @@ export default function MyRepairsPage() {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  {/* Item Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                     <div>
                       <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#453227', margin: '0 0 8px' }}>
@@ -245,12 +244,11 @@ export default function MyRepairsPage() {
                     <div style={{ textAlign: 'right', fontSize: '12px', color: '#7c6251', lineHeight: '1.4' }}>
                       Submitted on<br />
                       <span style={{ color: '#453227', fontWeight: '700' }}>
-                        {new Date(repair.createdAt).toLocaleDateString()}
+                        {formatDateTime(repair.createdAt)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Info Box */}
                   <div style={{ marginBottom: '20px' }}>
                     <p style={{ fontSize: '14px', color: '#5c4436', margin: '4px 0' }}>
                       <strong style={{ color: '#453227' }}>Device:</strong> {repair.deviceType}
@@ -262,7 +260,6 @@ export default function MyRepairsPage() {
 
                   <div style={{ borderTop: '1px solid #e6dfd5', margin: '16px 0' }} />
 
-                  {/* Progress Tracker */}
                   <ProgressTracker status={currentStatus} />
                 </div>
               );
@@ -276,12 +273,11 @@ export default function MyRepairsPage() {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(69, 50, 39, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
           <div style={{ backgroundColor: '#ffffff', borderRadius: '24px', width: '100%', maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)', color: '#453227' }}>
             
-            {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px', borderBottom: '1px solid #e6dfd5' }}>
               <div>
                 <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#453227', margin: 0 }}>Repair Details</h2>
                 <p style={{ fontSize: '13px', color: '#7c6251', margin: '4px 0 0' }}>
-                  Submitted on {new Date(selectedRepair.createdAt).toLocaleDateString()}
+                  Submitted on {formatDateTime(selectedRepair.createdAt)}
                 </p>
               </div>
               <button 
@@ -294,7 +290,6 @@ export default function MyRepairsPage() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px' }}>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -364,7 +359,6 @@ export default function MyRepairsPage() {
               )}
             </div>
 
-            {/* Modal Footer */}
             <div style={{ padding: '20px 32px', borderTop: '1px solid #e6dfd5', backgroundColor: '#fdfbf7', textAlign: 'right', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
               <button 
                 onClick={() => setSelectedRepair(null)} 

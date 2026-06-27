@@ -13,11 +13,6 @@ const ALL_MENU_ITEMS = [
   { label: 'Submit New Request', href: '/request-repair' },
 ];
 
-const IMPORTANT_DESKTOP_LINKS = [
-  { label: 'My Repairs', href: '/my-repairs' },
-  { label: 'New Request', href: '/request-repair' },
-];
-
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -84,6 +79,25 @@ export default function Navbar() {
 
   const displayName = user?.fullName?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
 
+  // Dynamic desktop links based on role
+  const getDesktopLinks = () => {
+    if (!user) return [];
+
+    if (user.role === 'CUSTOMER') {
+      return [
+        { label: 'My Repairs', href: '/my-repairs' },
+        { label: 'New Request', href: '/request-repair' },
+      ];
+    }
+
+    // For STAFF, SUPER ADMIN, AGENT
+    return [
+      { label: 'Staff Dashboard', href: '/staff' },
+    ];
+  };
+
+  const desktopLinks = getDesktopLinks();
+
   return (
     <nav style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #e6dfd5' }} className="sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6">
@@ -99,8 +113,9 @@ export default function Navbar() {
               </div>
             </Link>
 
+            {/* Dynamic Desktop Links */}
             <div className="hidden md:flex items-center gap-x-6 text-sm font-medium">
-              {IMPORTANT_DESKTOP_LINKS.map((item) => (
+              {desktopLinks.map((item) => (
                 <Link 
                   key={item.href}
                   href={item.href} 
@@ -139,7 +154,7 @@ export default function Navbar() {
               </Link>
             )}
 
-            {/* Menu Dropdown - Improved Design */}
+            {/* Menu Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -174,8 +189,20 @@ export default function Navbar() {
                     </>
                   )}
 
-                  {/* Normal Menu Items */}
-                  {ALL_MENU_ITEMS.map((item) => (
+                  {/* Staff Dashboard - For Staff & Super Admin */}
+                  {(user?.role === 'STAFF' || user?.role === 'SUPER ADMIN') && (
+                    <Link
+                      href="/staff"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2.5 text-sm font-semibold transition hover:bg-[#fef3c7]"
+                      style={{ color: '#d97706' }}
+                    >
+                      Staff Dashboard
+                    </Link>
+                  )}
+
+                  {/* Normal Menu Items (for customers) */}
+                  {user?.role === 'CUSTOMER' && ALL_MENU_ITEMS.map((item) => (
                     <Link
                       key={item.href}
                       href={item.href}

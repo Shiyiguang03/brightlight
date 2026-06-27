@@ -8,19 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // ✅ Fix for Next.js 15: await params
     const { id } = await params;
-    const repairId = parseInt(id);
-
-    if (isNaN(repairId)) {
-      return NextResponse.json(
-        { message: 'Invalid request ID' },
-        { status: 400 }
-      );
-    }
+    const requestId = parseInt(id);
 
     const repairRequest = await prisma.repairRequest.findUnique({
-      where: { id: repairId },
+      where: { id: requestId },
       include: {
         user: {
           select: {
@@ -42,7 +34,7 @@ export async function GET(
   } catch (error: any) {
     console.error('Error fetching repair request:', error);
     return NextResponse.json(
-      { message: 'Failed to fetch repair request', error: error.message },
+      { message: 'Failed to fetch repair request' },
       { status: 500 }
     );
   }

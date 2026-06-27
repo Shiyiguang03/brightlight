@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 
 interface AdminLayoutProps {
@@ -12,6 +12,35 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState('SUPER ADMIN');
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserRole(user.role);
+    }
+
+    const savedView = localStorage.getItem('viewMode') || 'SUPER ADMIN';
+    setViewMode(savedView);
+  }, []);
+
+  const isSuperAdmin = userRole === 'SUPER ADMIN';
+  const isStaffView = viewMode === 'STAFF';
+  const isAgentView = viewMode === 'AGENT';
+
+  const headerTitle = isAgentView 
+    ? 'AGENT' 
+    : isStaffView 
+      ? 'STAFF' 
+      : 'SUPER ADMIN';
+
+  const headerSubtitle = isAgentView 
+    ? 'Agent View' 
+    : isStaffView 
+      ? 'Staff View' 
+      : 'Super Admin View';
 
   const isActive = (path: string) => pathname === path;
 
@@ -29,132 +58,128 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#fffbeb' }}>
       
-      <Navbar />
+      {/* Navbar - Higher z-index so it stays on top */}
+      <div className="sticky top-0 z-[60]">
+        <Navbar />
+      </div>
 
       <div className="flex flex-1 relative">
         
-        {/* Mobile Hamburger */}
+        {/* Mobile Menu Button */}
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="md:hidden fixed top-20 left-4 z-[60] p-2 bg-white rounded-xl shadow border"
+          className="md:hidden fixed top-20 left-4 z-[70] p-2 bg-white rounded-xl shadow border"
           style={{ borderColor: '#e6dfd5' }}
         >
           ☰
         </button>
 
-        {/* Sidebar */}
+        {/* Sidebar - Starts below navbar on desktop */}
         <div 
           className={`
-            fixed md:static top-0 left-0 z-[50] h-full w-64 transform transition-transform duration-300 ease-in-out flex flex-col
+            fixed md:static top-16 md:top-0 left-0 z-[50] h-[calc(100vh-4rem)] md:h-full w-64 transform transition-transform duration-300 ease-in-out flex flex-col overflow-y-auto
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           `}
-          style={{ 
-            backgroundColor: '#fffbeb', 
-            borderColor: '#e6dfd5' 
-          }}
+          style={{ backgroundColor: '#fffbeb', borderColor: '#e6dfd5' }}
         >
-          {/* Sidebar Header */}
+          {/* Header */}
           <div className="px-5 pt-4 pb-3 border-b" style={{ borderColor: '#e6dfd5' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold tracking-wider" style={{ color: '#9f7a5f' }}>
-                  SUPER ADMIN
+                <p className="text-xs font-bold tracking-wider" style={{ color: '#78350f' }}>
+                  {headerTitle}
                 </p>
                 <p className="text-[10px] font-medium mt-0.5" style={{ color: '#d97706' }}>
-                  Super Admin View
+                  {headerSubtitle}
                 </p>
               </div>
 
-              <Link 
-                href="/admin/view" 
-                className="text-xs px-3 py-1.5 rounded-lg font-medium border transition hover:bg-[#fef3c7]"
-                style={{ borderColor: '#d97706', color: '#d97706' }}
-              >
-                Switch View
-              </Link>
+              {isSuperAdmin && (
+                <Link 
+                  href="/admin/view" 
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium border transition hover:bg-[#fef3c7]"
+                  style={{ borderColor: '#d97706', color: '#d97706' }}
+                >
+                  Switch View
+                </Link>
+              )}
             </div>
           </div>
 
-          <div className="flex-1 px-3 space-y-6 overflow-y-auto text-sm pt-3">
+          {/* Menu */}
+          <div className="flex-1 px-3 space-y-6 text-sm pt-3">
             
-            {/* OVERVIEW */}
-            <div>
-              <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#9f7a5f' }}>
-                OVERVIEW
-              </p>
-              <nav className="space-y-1">
-                <Link 
-                  href="/admin/dashboard" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
-                  style={navLinkStyle('/admin/dashboard')}
-                >
-                  📊 Dashboard
-                </Link>
-              </nav>
-            </div>
+            {/* SUPER ADMIN MENU */}
+            {!isStaffView && !isAgentView && (
+              <>
+                <div>
+                  <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#78350f' }}>OVERVIEW</p>
+                  <nav className="space-y-1">
+                    <Link href="/admin/dashboard" className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/admin/dashboard')}>
+                      📊 Dashboard
+                    </Link>
+                  </nav>
+                </div>
 
-            {/* MANAGEMENT */}
-            <div>
-              <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#9f7a5f' }}>
-                MANAGEMENT
-              </p>
-              <nav className="space-y-1">
-                <Link 
-                  href="/admin/users" 
-                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
-                  style={navLinkStyle('/admin/users')}
-                >
-                  <span>👥 All Users</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#fef3c7] text-[#b45309]">6</span>
-                </Link>
+                <div>
+                  <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#78350f' }}>MANAGEMENT</p>
+                  <nav className="space-y-1">
+                    <Link href="/admin/users" className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/admin/users')}>
+                      <span>👥 All Users</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#fef3c7] text-[#b45309]">6</span>
+                    </Link>
+                    <Link href="/admin/users/create" className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/admin/users/create')}>
+                      ➕ Create Staff / Agent
+                    </Link>
+                    <Link href="/admin/repairs" className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/admin/repairs')}>
+                      <span>🔧 Repair Requests</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#fef3c7] text-[#b45309]">6</span>
+                    </Link>
+                  </nav>
+                </div>
+              </>
+            )}
 
-                <Link 
-                  href="/admin/users/create" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
-                  style={navLinkStyle('/admin/users/create')}
-                >
-                  ➕ Create Staff / Agent
-                </Link>
+            {/* STAFF MENU */}
+            {isStaffView && (
+              <div>
+                <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#78350f' }}>REPAIRS</p>
+                <nav className="space-y-1">
+                  <Link href="/staff" className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/staff')}>
+                    🛠️ Dashboard
+                  </Link>
+                  <Link href="/staff/repairs" className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/staff/repairs')}>
+                    📋 All Repair Requests
+                  </Link>
+                </nav>
+              </div>
+            )}
 
-                <Link 
-                  href="/admin/repairs" 
-                  className="flex items-center justify-between px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
-                  style={navLinkStyle('/admin/repairs')}
-                >
-                  <span>🔧 Repair Requests</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-[#fef3c7] text-[#b45309]">6</span>
-                </Link>
-              </nav>
-            </div>
-
-            {/* SYSTEM */}
-            <div>
-              <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#9f7a5f' }}>
-                SYSTEM
-              </p>
-              <nav className="space-y-1">
-                <Link 
-                  href="/admin/settings" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
-                  style={navLinkStyle('/admin/settings')}
-                >
-                  ⚙️ Settings
-                </Link>
-                <Link 
-                  href="/admin/activity" 
-                  className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]"
-                  style={navLinkStyle('/admin/activity')}
-                >
-                  📈 Activity Logs
-                </Link>
-              </nav>
-            </div>
+            {/* AGENT MENU */}
+            {isAgentView && (
+              <div>
+                <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#78350f' }}>AGENT</p>
+                <nav className="space-y-1">
+                  <Link href="/agent" className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/agent')}>
+                    📊 Dashboard
+                  </Link>
+                  <Link href="/agent/request-repair" className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/agent/request-repair')}>
+                    📝 New Repair Request
+                  </Link>
+                  <Link href="/agent/my-requests" className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/agent/my-requests')}>
+                    📋 My Requests
+                  </Link>
+                </nav>
+              </div>
+            )}
           </div>
 
+          {/* Logout */}
           <div className="p-4 border-t mt-auto" style={{ borderColor: '#e6dfd5' }}>
             <button 
               onClick={() => {
                 localStorage.removeItem('user');
+                localStorage.removeItem('viewMode');
                 window.location.href = '/login';
               }}
               className="w-full flex items-center gap-x-2 px-4 py-2.5 text-sm font-bold rounded-xl transition-all hover:bg-red-50"
@@ -167,10 +192,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Mobile Overlay */}
         {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/30 z-[45] md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/30 z-[45] md:hidden" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Main Content */}

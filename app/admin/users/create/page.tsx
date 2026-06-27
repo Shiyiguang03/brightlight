@@ -11,13 +11,7 @@ export default function CreateUserPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    role: 'AGENT',
-  });
-
-  const [permissions, setPermissions] = useState({
-    viewRepairRequests: true,
-    updateRepairStatus: true,
-    contactCustomers: true,
+    role: 'STAFF',
   });
 
   const [loading, setLoading] = useState(false);
@@ -25,13 +19,6 @@ export default function CreateUserPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handlePermissionChange = (key: string) => {
-    setPermissions(prev => ({
-      ...prev,
-      [key]: !prev[key as keyof typeof permissions],
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +42,6 @@ export default function CreateUserPage() {
           email: formData.email || null,
           password: formData.password,
           role: formData.role,
-          // You can store permissions later if needed
         }),
       });
 
@@ -63,7 +49,6 @@ export default function CreateUserPage() {
 
       if (res.ok) {
         setMessage(`✅ Account created successfully! Temporary password: ${formData.phone}`);
-        // Reset form
         setFormData({
           firstName: '',
           lastName: '',
@@ -71,7 +56,7 @@ export default function CreateUserPage() {
           phone: '',
           password: '',
           confirmPassword: '',
-          role: 'AGENT',
+          role: 'STAFF',
         });
       } else {
         setMessage(`❌ ${data.message}`);
@@ -83,60 +68,89 @@ export default function CreateUserPage() {
     }
   };
 
+  // Role-based permissions (for display only)
+  const getRolePermissions = (role: string) => {
+    if (role === 'AGENT') {
+      return [
+        { label: 'View Assigned Repairs', desc: 'Can only see repairs assigned to them' },
+        { label: 'Contact Customers', desc: 'Can communicate with customers' },
+      ];
+    }
+    if (role === 'STAFF') {
+      return [
+        { label: 'View All Repair Requests', desc: 'Can see all work orders' },
+        { label: 'Update Repair Status', desc: 'Can change work order progress' },
+        { label: 'Contact Customers', desc: 'Can message customers' },
+      ];
+    }
+    if (role === 'MANAGER') {
+      return [
+        { label: 'View All Repair Requests', desc: 'Full access to all work orders' },
+        { label: 'Update Repair Status', desc: 'Can change any work order status' },
+        { label: 'Assign Work Orders', desc: 'Can assign repairs to staff' },
+        { label: 'Manage Staff', desc: 'Can view and manage team members' },
+      ];
+    }
+    return [];
+  };
+
+  const currentPermissions = getRolePermissions(formData.role);
+
   return (
     <AdminLayout>
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: '#453227' }}>Create staff / agent</h1>
+        <h1 className="text-3xl font-bold mb-2" style={{ color: '#453227' }}>Create Staff / Agent</h1>
+        <p className="mb-6" style={{ color: '#7c6251' }}>Create new accounts with appropriate access levels</p>
 
-        <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-8 mt-6" style={{ borderColor: '#e6dfd5' }}>
+        <form onSubmit={handleSubmit} className="bg-white border rounded-2xl p-8" style={{ borderColor: '#e6dfd5' }}>
 
           {/* ACCOUNT DETAILS */}
           <div className="mb-8">
-            <p className="text-sm font-bold tracking-wider mb-4 text-center" style={{ color: '#9f7a5f' }}>ACCOUNT DETAILS</p>
+            <p className="text-sm font-bold tracking-wider mb-4" style={{ color: '#78350f' }}>ACCOUNT DETAILS</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold mb-1.5" style={{ color: '#9f7a5f' }}>First name</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#453227' }}>First Name</label>
                 <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required
-                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="e.g. Ahmad" />
+                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5', color: '#453227' }} placeholder="e.g. Ahmad" />
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5" style={{ color: '#9f7a5f' }}>Last name</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#453227' }}>Last Name</label>
                 <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required
-                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="e.g. Razif" />
+                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5', color: '#453227' }} placeholder="e.g. Razif" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-xs font-bold mb-1.5" style={{ color: '#9f7a5f' }}>Email address</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#453227' }}>Email Address</label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange}
-                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="user@brightlight.my" />
+                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5', color: '#453227' }} placeholder="user@brightlight.my" />
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5" style={{ color: '#9f7a5f' }}>Phone number</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#453227' }}>Phone Number</label>
                 <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required
-                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="+60 12 345 6789" />
+                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5', color: '#453227' }} placeholder="+60 12 345 6789" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-xs font-bold mb-1.5" style={{ color: '#9f7a5f' }}>Password</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#453227' }}>Password</label>
                 <input type="password" name="password" value={formData.password} onChange={handleChange} required
-                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="Min. 8 characters" />
+                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5', color: '#453227' }} placeholder="Min. 6 characters" />
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1.5" style={{ color: '#9f7a5f' }}>Confirm password</label>
+                <label className="block text-sm font-semibold mb-1.5" style={{ color: '#453227' }}>Confirm Password</label>
                 <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required
-                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5' }} placeholder="Repeat password" />
+                  className="w-full border rounded-xl px-4 py-3 text-sm" style={{ borderColor: '#e6dfd5', color: '#453227' }} placeholder="Repeat password" />
               </div>
             </div>
           </div>
 
           {/* SELECT ROLE */}
           <div className="mb-8">
-            <p className="text-sm font-bold tracking-wider mb-4 text-center" style={{ color: '#9f7a5f' }}>SELECT ROLE</p>
+            <p className="text-sm font-bold tracking-wider mb-4" style={{ color: '#78350f' }}>SELECT ROLE</p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {['AGENT', 'STAFF', 'MANAGER'].map((role) => (
@@ -144,45 +158,41 @@ export default function CreateUserPage() {
                   key={role}
                   type="button"
                   onClick={() => setFormData({ ...formData, role })}
-                  className={`p-4 rounded-2xl border text-center transition-all ${formData.role === role ? 'bg-[#fef3c7] border-[#d97706]' : 'border-[#e6dfd5] hover:bg-[#fefce8]'}`}
+                  className={`p-4 rounded-2xl border text-center transition-all ${formData.role === role 
+                    ? 'bg-[#fef3c7] border-[#d97706] shadow-sm' 
+                    : 'border-[#e6dfd5] hover:bg-[#fefce8]'}`}
                 >
-                  <div className="text-2xl mb-2">
+                  <div className="text-3xl mb-2">
                     {role === 'AGENT' && '🎧'}
                     {role === 'STAFF' && '🛠️'}
                     {role === 'MANAGER' && '🛡️'}
                   </div>
-                  <p className="font-semibold" style={{ color: '#453227' }}>{role}</p>
+                  <p className="font-bold text-lg" style={{ color: '#453227' }}>{role}</p>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* PERMISSIONS */}
+          {/* PERMISSIONS (Dynamic based on role) */}
           <div className="mb-8">
-            <p className="text-sm font-bold tracking-wider mb-4 text-center" style={{ color: '#9f7a5f' }}>PERMISSIONS</p>
+            <p className="text-sm font-bold tracking-wider mb-4" style={{ color: '#78350f' }}>PERMISSIONS FOR {formData.role}</p>
             
-            <div className="space-y-4">
-              {[
-                { key: 'viewRepairRequests', label: 'View repair requests', desc: 'Can see all work orders' },
-                { key: 'updateRepairStatus', label: 'Update repair status', desc: 'Can change work order progress' },
-                { key: 'contactCustomers', label: 'Contact customers', desc: 'Can message via live agent' },
-              ].map((perm) => (
-                <div key={perm.key} className="flex items-center justify-between px-4 py-3 border rounded-2xl" style={{ borderColor: '#e6dfd5' }}>
-                  <div>
-                    <p className="font-semibold" style={{ color: '#453227' }}>{perm.label}</p>
-                    <p className="text-xs" style={{ color: '#9f7a5f' }}>{perm.desc}</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={permissions[perm.key as keyof typeof permissions]} 
-                      onChange={() => handlePermissionChange(perm.key)}
-                      className="sr-only peer" 
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#d97706]"></div>
-                  </label>
+            <div className="bg-[#fefce8] border rounded-2xl p-5" style={{ borderColor: '#e6dfd5' }}>
+              {currentPermissions.length > 0 ? (
+                <div className="space-y-4">
+                  {currentPermissions.map((perm, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="w-2 h-2 mt-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#d97706' }}></div>
+                      <div>
+                        <p className="font-semibold" style={{ color: '#453227' }}>{perm.label}</p>
+                        <p className="text-sm" style={{ color: '#7c6251' }}>{perm.desc}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <p style={{ color: '#7c6251' }}>No specific permissions set for this role yet.</p>
+              )}
             </div>
           </div>
 
@@ -190,14 +200,15 @@ export default function CreateUserPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-2xl font-bold text-white text-lg transition"
+            className="w-full py-3.5 rounded-2xl font-bold text-white text-lg transition hover:opacity-90 disabled:opacity-70"
             style={{ backgroundColor: '#d97706' }}
           >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
 
           {message && (
-            <div className="mt-4 p-4 rounded-2xl text-sm text-center" style={{ backgroundColor: '#fef3c7', color: '#453227' }}>
+            <div className="mt-4 p-4 rounded-2xl text-sm text-center font-medium" 
+                 style={{ backgroundColor: '#fef3c7', color: '#453227' }}>
               {message}
             </div>
           )}

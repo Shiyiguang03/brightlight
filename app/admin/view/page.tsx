@@ -1,73 +1,92 @@
 'use client';
 
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 
 export default function ViewSwitcher() {
+  const router = useRouter();
+  const [currentView, setCurrentView] = useState('SUPER ADMIN');
+
+  useEffect(() => {
+    const savedView = localStorage.getItem('viewMode') || 'SUPER ADMIN';
+    setCurrentView(savedView);
+  }, []);
+
+  const switchView = (view: string) => {
+    localStorage.setItem('viewMode', view);
+    setCurrentView(view);
+
+    // Redirect based on view
+    if (view === 'SUPER ADMIN') {
+      router.push('/admin/dashboard');
+    } else if (view === 'STAFF') {
+      router.push('/staff');
+    } else if (view === 'AGENT') {
+      router.push('/agent');
+    }
+  };
+
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: '#453227' }}>
-          Switch View
-        </h1>
-        <p className="mb-8" style={{ color: '#7c6251' }}>
-          As Super Admin, you can preview different user interfaces.
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-3xl font-bold mb-2" style={{ color: '#1f130b' }}>Switch View</h1>
+        <p className="mb-8" style={{ color: '#5c4436' }}>
+          As Super Admin, you can temporarily view the system as different roles.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Super Admin View */}
-          <Link 
-            href="/admin/dashboard" 
-            className="block p-6 bg-white border rounded-2xl hover:shadow-md transition"
-            style={{ borderColor: '#e6dfd5' }}
+          <button
+            onClick={() => switchView('SUPER ADMIN')}
+            className={`p-6 rounded-2xl border text-left transition-all ${
+              currentView === 'SUPER ADMIN' 
+                ? 'border-[#d97706] bg-[#fef3c7]' 
+                : 'border-[#e6dfd5] hover:bg-[#fefce8]'
+            }`}
           >
-            <div className="flex items-center gap-x-4">
-              <div className="text-3xl">🛡️</div>
-              <div>
-                <h3 className="font-bold text-lg" style={{ color: '#453227' }}>Super Admin View</h3>
-                <p className="text-sm" style={{ color: '#7c6251' }}>Full control panel with all management tools</p>
-              </div>
-            </div>
-          </Link>
+            <div className="text-3xl mb-3">🛡️</div>
+            <p className="font-bold text-xl" style={{ color: '#1f130b' }}>Super Admin</p>
+            <p className="text-sm mt-1" style={{ color: '#5c4436' }}>
+              Full access to manage users, staff, and all repairs.
+            </p>
+          </button>
 
           {/* Staff View */}
-          <Link 
-            href="/staff" 
-            className="block p-6 bg-white border rounded-2xl hover:shadow-md transition"
-            style={{ borderColor: '#e6dfd5' }}
+          <button
+            onClick={() => switchView('STAFF')}
+            className={`p-6 rounded-2xl border text-left transition-all ${
+              currentView === 'STAFF' 
+                ? 'border-[#d97706] bg-[#fef3c7]' 
+                : 'border-[#e6dfd5] hover:bg-[#fefce8]'
+            }`}
           >
-            <div className="flex items-center gap-x-4">
-              <div className="text-3xl">🛠️</div>
-              <div>
-                <h3 className="font-bold text-lg" style={{ color: '#453227' }}>Staff View</h3>
-                <p className="text-sm" style={{ color: '#7c6251' }}>Manage repair requests and update status</p>
-              </div>
-            </div>
-          </Link>
+            <div className="text-3xl mb-3">🛠️</div>
+            <p className="font-bold text-xl" style={{ color: '#1f130b' }}>Staff</p>
+            <p className="text-sm mt-1" style={{ color: '#5c4436' }}>
+              View and manage all repair requests.
+            </p>
+          </button>
 
-          {/* Future: Agent View (placeholder for now) */}
-          <div className="block p-6 bg-white border rounded-2xl opacity-60 cursor-not-allowed" style={{ borderColor: '#e6dfd5' }}>
-            <div className="flex items-center gap-x-4">
-              <div className="text-3xl">🎧</div>
-              <div>
-                <h3 className="font-bold text-lg" style={{ color: '#453227' }}>Agent View</h3>
-                <p className="text-sm" style={{ color: '#7c6251' }}>Coming soon...</p>
-              </div>
-            </div>
-          </div>
+          {/* Agent View */}
+          <button
+            onClick={() => switchView('AGENT')}
+            className={`p-6 rounded-2xl border text-left transition-all ${
+              currentView === 'AGENT' 
+                ? 'border-[#d97706] bg-[#fef3c7]' 
+                : 'border-[#e6dfd5] hover:bg-[#fefce8]'
+            }`}
+          >
+            <div className="text-3xl mb-3">🎧</div>
+            <p className="font-bold text-xl" style={{ color: '#1f130b' }}>Agent</p>
+            <p className="text-sm mt-1" style={{ color: '#5c4436' }}>
+              Submit repair requests on behalf of customers.
+            </p>
+          </button>
+        </div>
 
-          {/* Future: Manager View */}
-          <div className="block p-6 bg-white border rounded-2xl opacity-60 cursor-not-allowed" style={{ borderColor: '#e6dfd5' }}>
-            <div className="flex items-center gap-x-4">
-              <div className="text-3xl">📋</div>
-              <div>
-                <h3 className="font-bold text-lg" style={{ color: '#453227' }}>Manager View</h3>
-                <p className="text-sm" style={{ color: '#7c6251' }}>Coming soon...</p>
-              </div>
-            </div>
-          </div>
-
+        <div className="mt-8 p-4 rounded-2xl text-sm" style={{ backgroundColor: '#fef3c7', color: '#78350f' }}>
+          Note: Switching view only changes what you see. Your actual role remains <strong>Super Admin</strong>.
         </div>
       </div>
     </AdminLayout>

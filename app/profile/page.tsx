@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { createClient } from '@supabase/supabase-js';
+
+// ✅ Create Supabase client OUTSIDE the component (best practice)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -12,17 +17,16 @@ export default function ProfilePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Password change states
+  // Password states
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
 
-  // Create Supabase client inside component (safer)
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // Press & Hold password visibility
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -33,58 +37,43 @@ export default function ProfilePage() {
     }
   }, []);
 
-  // Handle file selection (show preview)
+  // ==================== Profile Picture Functions (UNCHANGED) ====================
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setSelectedFile(file);
-
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setPreviewUrl(event.target?.result as string);
-    };
+    reader.onload = (event) => setPreviewUrl(event.target?.result as string);
     reader.readAsDataURL(file);
   };
 
-  // Upload and save the new photo
   const handleUploadPhoto = async () => {
     if (!selectedFile || !user) return;
-
     setUploading(true);
 
     try {
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${user.id || Date.now()}-${Math.random()}.${fileExt}`;
 
-      const { data, error } = await supabase.storage
-        .from('profile-pictures')
-        .upload(fileName, selectedFile);
-
+      const { error } = await supabase.storage.from('profile-pictures').upload(fileName, selectedFile);
       if (error) {
         alert('Upload failed: ' + error.message);
         setUploading(false);
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from('profile-pictures')
-        .getPublicUrl(fileName);
-
+      const { data: urlData } = supabase.storage.from('profile-pictures').getPublicUrl(fileName);
       const imageUrl = urlData.publicUrl;
 
       const res = await fetch('/api/update-profile-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          imageUrl: imageUrl,
-        }),
+        body: JSON.stringify({ userId: user.id, imageUrl }),
       });
 
       if (!res.ok) {
-        const result = await res.json();
-        alert(result.message || 'Failed to save image to database');
+        alert('Failed to save image');
         setUploading(false);
         return;
       }
@@ -93,18 +82,14 @@ export default function ProfilePage() {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setProfileImage(imageUrl);
-
       window.dispatchEvent(new Event('profile-updated'));
 
       setSelectedFile(null);
       setPreviewUrl(null);
-
       alert('Profile picture updated successfully!');
     } catch (err) {
-      console.error(err);
-      alert('Something went wrong while uploading.');
+      alert('Something went wrong');
     }
-
     setUploading(false);
   };
 
@@ -115,33 +100,30 @@ export default function ProfilePage() {
 
   const handleRemovePhoto = async () => {
     if (!user) return;
+    await fetch('/api/update-profile-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, imageUrl: null }),
+    });
 
-    try {
-      await fetch('/api/update-profile-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          imageUrl: null,
-        }),
-      });
-
-      const updatedUser = { ...user, profileImage: null };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      setUser(updatedUser);
-      setProfileImage(null);
-
-      window.dispatchEvent(new Event('profile-updated'));
-    } catch (err) {
-      alert('Failed to remove photo');
-    }
+    const updatedUser = { ...user, profileImage: null };
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    setProfileImage(null);
+    window.dispatchEvent(new Event('profile-updated'));
   };
 
-  const handleChangePassword = () => {
+  // ==================== PROPER Change Password (Updated) ====================
+  const handleChangePassword = async () => {
     setPasswordMessage('');
 
     if (!oldPassword || !newPassword || !confirmNewPassword) {
       setPasswordMessage('Please fill in all password fields.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordMessage('New password must be at least 6 characters.');
       return;
     }
 
@@ -150,19 +132,30 @@ export default function ProfilePage() {
       return;
     }
 
-    if (oldPassword !== user.password) {
-      setPasswordMessage('Old password is incorrect.');
-      return;
+    try {
+      const res = await fetch('/api/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          oldPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setPasswordMessage('Password changed successfully!');
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+      } else {
+        setPasswordMessage(data.message || 'Failed to change password');
+      }
+    } catch (error) {
+      setPasswordMessage('Something went wrong. Please try again.');
     }
-
-    const updatedUser = { ...user, password: newPassword };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    setUser(updatedUser);
-
-    setOldPassword('');
-    setNewPassword('');
-    setConfirmNewPassword('');
-    setPasswordMessage('Password changed successfully!');
   };
 
   if (!user) {
@@ -189,7 +182,6 @@ export default function ProfilePage() {
           {/* Profile Picture Section */}
           <div className="mb-10">
             <h3 className="font-semibold mb-4" style={{ color: '#453227' }}>Profile Picture</h3>
-            
             <div className="flex flex-col md:flex-row items-start gap-6">
               <div className="w-24 h-24 rounded-full overflow-hidden border-2 flex-shrink-0" style={{ borderColor: '#e6dfd5' }}>
                 {previewUrl ? (
@@ -211,39 +203,27 @@ export default function ProfilePage() {
                       Change Photo
                       <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
                     </label>
-
                     {profileImage && (
-                      <button 
-                        onClick={handleRemovePhoto}
-                        className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition hover:bg-red-50"
-                        style={{ borderColor: '#e6dfd5', color: '#b91c1c' }}
-                      >
+                      <button onClick={handleRemovePhoto} className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition hover:bg-red-50"
+                              style={{ borderColor: '#e6dfd5', color: '#b91c1c' }}>
                         Remove Photo
                       </button>
                     )}
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-3">
-                    <button 
-                      onClick={handleUploadPhoto} 
-                      disabled={uploading}
-                      className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90 disabled:opacity-70"
-                      style={{ backgroundColor: '#d97706', color: 'white' }}
-                    >
+                    <button onClick={handleUploadPhoto} disabled={uploading}
+                            className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold transition hover:opacity-90 disabled:opacity-70"
+                            style={{ backgroundColor: '#d97706', color: 'white' }}>
                       {uploading ? 'Saving...' : 'Save New Photo'}
                     </button>
-
-                    <button 
-                      onClick={handleCancelSelection}
-                      disabled={uploading}
-                      className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition hover:bg-stone-50"
-                      style={{ borderColor: '#e6dfd5', color: '#453227' }}
-                    >
+                    <button onClick={handleCancelSelection} disabled={uploading}
+                            className="px-5 py-2.5 rounded-xl text-sm font-semibold border transition hover:bg-stone-50"
+                            style={{ borderColor: '#e6dfd5', color: '#453227' }}>
                       Cancel
                     </button>
                   </div>
                 )}
-
                 <p className="text-xs mt-2" style={{ color: '#9f7a5f' }}>
                   JPG or PNG • Recommended size: 400x400
                 </p>
@@ -274,47 +254,101 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Change Password */}
+          {/* Change Password Section */}
           <div>
             <h3 className="font-semibold mb-4" style={{ color: '#453227' }}>Change Password</h3>
             
             <div className="space-y-4 max-w-md">
+
+              {/* Current Password */}
               <div>
                 <label className="text-xs font-bold tracking-wider block mb-1" style={{ color: '#9f7a5f' }}>CURRENT PASSWORD</label>
-                <input 
-                  type="password" 
-                  value={oldPassword} 
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  className="w-full border rounded-xl px-4 py-3 text-sm" 
-                  style={{ borderColor: '#e6dfd5' }}
-                  placeholder="Enter current password"
-                />
+                <div className="relative">
+                  <input 
+                    type={showOldPassword ? "text" : "password"} 
+                    value={oldPassword} 
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className="w-full border rounded-xl px-4 py-3 text-sm pr-12" 
+                    style={{ borderColor: '#e6dfd5', color: '#453227', backgroundColor: '#ffffff' }}
+                    placeholder="Enter your current password"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={() => setShowOldPassword(true)}
+                    onMouseUp={() => setShowOldPassword(false)}
+                    onMouseLeave={() => setShowOldPassword(false)}
+                    onTouchStart={() => setShowOldPassword(true)}
+                    onTouchEnd={() => setShowOldPassword(false)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#9f7a5f">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
+
+              {/* New Password */}
               <div>
                 <label className="text-xs font-bold tracking-wider block mb-1" style={{ color: '#9f7a5f' }}>NEW PASSWORD</label>
-                <input 
-                  type="password" 
-                  value={newPassword} 
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full border rounded-xl px-4 py-3 text-sm" 
-                  style={{ borderColor: '#e6dfd5' }}
-                  placeholder="Enter new password"
-                />
+                <div className="relative">
+                  <input 
+                    type={showNewPassword ? "text" : "password"} 
+                    value={newPassword} 
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full border rounded-xl px-4 py-3 text-sm pr-12" 
+                    style={{ borderColor: '#e6dfd5', color: '#453227', backgroundColor: '#ffffff' }}
+                    placeholder="Enter new password"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={() => setShowNewPassword(true)}
+                    onMouseUp={() => setShowNewPassword(false)}
+                    onMouseLeave={() => setShowNewPassword(false)}
+                    onTouchStart={() => setShowNewPassword(true)}
+                    onTouchEnd={() => setShowNewPassword(false)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#9f7a5f">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
+
+              {/* Confirm New Password */}
               <div>
                 <label className="text-xs font-bold tracking-wider block mb-1" style={{ color: '#9f7a5f' }}>CONFIRM NEW PASSWORD</label>
-                <input 
-                  type="password" 
-                  value={confirmNewPassword} 
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  className="w-full border rounded-xl px-4 py-3 text-sm" 
-                  style={{ borderColor: '#e6dfd5' }}
-                  placeholder="Confirm new password"
-                />
+                <div className="relative">
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    value={confirmNewPassword} 
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    className="w-full border rounded-xl px-4 py-3 text-sm pr-12" 
+                    style={{ borderColor: '#e6dfd5', color: '#453227', backgroundColor: '#ffffff' }}
+                    placeholder="Confirm new password"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={() => setShowConfirmPassword(true)}
+                    onMouseUp={() => setShowConfirmPassword(false)}
+                    onMouseLeave={() => setShowConfirmPassword(false)}
+                    onTouchStart={() => setShowConfirmPassword(true)}
+                    onTouchEnd={() => setShowConfirmPassword(false)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#9f7a5f">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {passwordMessage && (
-                <p className={`text-sm ${passwordMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-sm font-medium ${passwordMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
                   {passwordMessage}
                 </p>
               )}
@@ -335,5 +369,4 @@ export default function ProfilePage() {
   );
 }
 
-// ✅ This fixes the prerender/build error
 export const dynamic = 'force-dynamic';
