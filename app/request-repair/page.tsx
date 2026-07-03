@@ -22,8 +22,9 @@ export default function RequestRepairPage() {
     otherItems: '',
     preferredStartDate: '',
     preferredEndDate: '',
-    deliveryOption: 'dropoff', // 'dropoff' or 'pickup'
+    deliveryOption: 'dropoff',
     pickupAddress: '',
+    termsAccepted: false,
   });
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -31,16 +32,33 @@ export default function RequestRepairPage() {
 
   // Popular Brands
   const popularBrands = [
-    'Apple', 'Dell', 'HP', 'Lenovo', 'ASUS', 'Acer', 'MSI', 
+    'Apple', 'Dell', 'HP', 'Lenovo', 'ASUS', 'Acer', 'MSI',
     'Microsoft', 'Samsung', 'LG', 'Razer', 'Huawei'
   ];
 
-  // Common Models (you can expand this)
-  const commonModels = [
-    'MacBook Pro', 'MacBook Air', 'XPS 13', 'XPS 15', 'ThinkPad X1', 
-    'IdeaPad', 'Pavilion', 'Envy', 'Spectre', 'Zenbook', 'VivoBook',
-    'Surface Laptop', 'Surface Pro', 'Galaxy Book'
-  ];
+  // Brand-specific Models
+  const brandModels: Record<string, string[]> = {
+    'Apple': ['MacBook Air', 'MacBook Pro', 'iMac', 'Mac Mini'],
+    'Dell': ['XPS 13', 'XPS 15', 'Inspiron', 'Latitude', 'G Series'],
+    'HP': ['Pavilion', 'Envy', 'Spectre', 'EliteBook', 'ProBook', 'Omen'],
+    'Lenovo': ['ThinkPad X1', 'ThinkPad T Series', 'IdeaPad', 'Legion', 'Yoga'],
+    'ASUS': ['Zenbook', 'VivoBook', 'ROG Strix', 'TUF Gaming', 'ExpertBook'],
+    'Acer': ['Aspire', 'Swift', 'Spin', 'Predator', 'Nitro'],
+    'MSI': ['GF Series', 'GS Series', 'Stealth', 'Creator', 'Titan'],
+    'Microsoft': ['Surface Laptop', 'Surface Pro', 'Surface Book'],
+    'Samsung': ['Galaxy Book', 'Galaxy Book Pro'],
+    'LG': ['Gram'],
+    'Razer': ['Blade', 'Book'],
+    'Huawei': ['MateBook'],
+  };
+
+  const getAvailableModels = () => {
+    if (!formData.brand || formData.brand === 'Other') {
+      return ['Other'];
+    }
+    const models = brandModels[formData.brand] || [];
+    return [...models, 'Other'];
+  };
 
   // Set default dates
   useEffect(() => {
@@ -93,6 +111,11 @@ export default function RequestRepairPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.termsAccepted) {
+      alert('Please accept the Terms & Conditions to continue.');
+      return;
+    }
+
     const storedUser = localStorage.getItem('user');
     if (!storedUser) {
       alert('Please login first to submit a repair request.');
@@ -101,8 +124,6 @@ export default function RequestRepairPage() {
     }
 
     const user = JSON.parse(storedUser);
-
-    // Use selected brand or custom brand
     const finalBrand = formData.brand === 'Other' ? formData.otherBrand : formData.brand;
     const finalModel = formData.model === 'Other' ? formData.otherModel : formData.model;
 
@@ -111,7 +132,7 @@ export default function RequestRepairPage() {
     formDataToSend.append('deviceType', formData.deviceType);
     formDataToSend.append('brand', finalBrand);
     formDataToSend.append('model', finalModel);
-    formDataToSend.append('serialNumber', formData.serialNumber || '');
+    formDataToSend.append('serialNumber', formData.serialNumber);
     formDataToSend.append('problemDescription', formData.problemDescription);
     formDataToSend.append('password', formData.password || '');
     formDataToSend.append('hasCharger', formData.hasCharger.toString());
@@ -138,7 +159,7 @@ export default function RequestRepairPage() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Backend Error:', errorText);
-        alert('Failed to submit request. Check console for details.');
+        alert('Failed to submit request. Please try again.');
         return;
       }
 
@@ -151,71 +172,67 @@ export default function RequestRepairPage() {
     }
   };
 
+  const availableModels = getAvailableModels();
+  const isFormValid = formData.serialNumber.trim() !== '' && formData.termsAccepted;
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#fcfbf7', minHeight: '100vh', color: '#453227' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#fcfbf7', color: '#453227' }}>
       <Navbar />
 
-      <div className="py-12 px-4" style={{ padding: '48px 16px' }}>
-        <div className="max-w-3xl mx-auto" style={{ width: '100%', maxWidth: '768px', margin: '0 auto' }}>
-          
-          <div className="text-center mb-10" style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <h1 className="text-3xl font-bold" style={{ fontSize: '30px', fontWeight: '800', color: '#453227', margin: '0' }}>
+      <div className="py-12 px-4">
+        <div className="max-w-3xl mx-auto">
+
+          {/* Header */}
+          <div className="text-center mb-10">
+            <h1 className="text-3xl font-bold" style={{ color: '#453227' }}>
               Request Repair
             </h1>
-            <p className="mt-2" style={{ fontSize: '15px', color: '#7c6251', marginTop: '8px', margin: '8px 0 0 0' }}>
+            <p className="mt-2" style={{ color: '#7c6251' }}>
               Fill in the details below and we’ll get back to you shortly.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="bg-white border rounded-3xl shadow-xl p-8"
-            style={{ backgroundColor: '#ffffff', borderRadius: '24px', borderColor: '#e6dfd5', padding: '32px', display: 'flex', flexDirection: 'column', gap: '28px', boxSizing: 'border-box' }}>
+          <form onSubmit={handleSubmit} className="bg-white border rounded-3xl shadow-xl p-8" style={{ borderColor: '#e6dfd5' }}>
 
             {/* Device Information */}
-            <div>
-              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#453227', margin: '0 0 16px 0' }}>
-                Device Information
-              </h2>
+            <div className="mb-8">
+              <h2 className="text-lg font-bold mb-4" style={{ color: '#453227' }}>Device Information</h2>
 
-              {/* Device Type Selection */}
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#7c6251', marginBottom: '10px', letterSpacing: '0.05em' }}>
+              {/* Device Type */}
+              <div className="mb-6">
+                <label className="block text-xs font-bold tracking-wider mb-3" style={{ color: '#7c6251' }}>
                   SELECT DEVICE TYPE
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                  {/* Laptop, PC/Desktop, Others buttons - keep as is */}
-                  <button type="button" onClick={() => handleDeviceSelect('Laptop')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', backgroundColor: formData.deviceType === 'Laptop' ? '#fef3c7' : '#ffffff', border: formData.deviceType === 'Laptop' ? '2px solid #d97706' : '1px solid #e6dfd5', color: formData.deviceType === 'Laptop' ? '#b45309' : '#5c4436' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '32px', height: '32px' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25" />
-                    </svg>
-                    <span style={{ fontSize: '13px', fontWeight: '700' }}>Laptop</span>
-                  </button>
-
-                  <button type="button" onClick={() => handleDeviceSelect('PC/Desktop')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', backgroundColor: formData.deviceType === 'PC/Desktop' ? '#fef3c7' : '#ffffff', border: formData.deviceType === 'PC/Desktop' ? '2px solid #d97706' : '1px solid #e6dfd5', color: formData.deviceType === 'PC/Desktop' ? '#b45309' : '#5c4436' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '32px', height: '32px' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h14.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125Z" />
-                    </svg>
-                    <span style={{ fontSize: '13px', fontWeight: '700' }}>PC / Desktop</span>
-                  </button>
-
-                  <button type="button" onClick={() => handleDeviceSelect('Others')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', borderRadius: '16px', cursor: 'pointer', transition: 'all 0.2s', backgroundColor: formData.deviceType === 'Others' ? '#fef3c7' : '#ffffff', border: formData.deviceType === 'Others' ? '2px solid #d97706' : '1px solid #e6dfd5', color: formData.deviceType === 'Others' ? '#b45309' : '#5c4436' }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '32px', height: '32px' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.68-.69-1.25-1.59-1.59-2.61m6.49 2.61c.68-.69 1.25-1.59 1.59-2.61m-8.08 0a7.5 7.5 0 0 1 14.98 0M4.5 12a7.5 7.5 0 0 0 15 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077 1.41-.513m14.095-.513 1.41.513M5.106 17.785l1.15-.827m11.479.827-1.149-.827M8.14 21.27l.707-1.03m6.308 1.03-.707-1.03M12 3v1.5" />
-                    </svg>
-                    <span style={{ fontSize: '13px', fontWeight: '700' }}>Others</span>
-                  </button>
+                <div className="grid grid-cols-3 gap-3">
+                  {['Laptop', 'PC/Desktop', 'Others'].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => handleDeviceSelect(type)}
+                      className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition"
+                      style={{
+                        backgroundColor: formData.deviceType === type ? '#fef3c7' : '#ffffff',
+                        borderColor: formData.deviceType === type ? '#d97706' : '#e6dfd5',
+                        color: formData.deviceType === type ? '#b45309' : '#5c4436'
+                      }}
+                    >
+                      <span className="font-semibold text-sm">{type}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Brand Dropdown + Other */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="grid grid-cols-1 md:grid-cols-2">
+              {/* Brand + Model */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>BRAND</label>
-                  <select 
-                    name="brand" 
-                    value={formData.brand} 
-                    onChange={handleChange} 
+                  <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>BRAND</label>
+                  <select
+                    name="brand"
+                    value={formData.brand}
+                    onChange={handleChange}
                     required
-                    style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none' }}
+                    className="w-full h-12 px-4 border rounded-xl text-sm"
+                    style={{ borderColor: '#e6dfd5' }}
                   >
                     <option value="">Select Brand</option>
                     {popularBrands.map(brand => (
@@ -224,117 +241,122 @@ export default function RequestRepairPage() {
                     <option value="Other">Other</option>
                   </select>
                   {formData.brand === 'Other' && (
-                    <input 
-                      type="text" 
-                      name="otherBrand" 
-                      value={formData.otherBrand} 
-                      onChange={handleChange} 
-                      placeholder="Please specify brand" 
-                      style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none', marginTop: '8px' }} 
+                    <input
+                      type="text"
+                      name="otherBrand"
+                      value={formData.otherBrand}
+                      onChange={handleChange}
+                      placeholder="Please specify brand"
+                      className="w-full h-12 px-4 border rounded-xl mt-2 text-sm"
+                      style={{ borderColor: '#e6dfd5' }}
                     />
                   )}
                 </div>
 
-                {/* Model Dropdown + Other */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>MODEL</label>
-                  <select 
-                    name="model" 
-                    value={formData.model} 
-                    onChange={handleChange} 
+                  <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>MODEL</label>
+                  <select
+                    name="model"
+                    value={formData.model}
+                    onChange={handleChange}
                     required
-                    style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none' }}
+                    className="w-full h-12 px-4 border rounded-xl text-sm"
+                    style={{ borderColor: '#e6dfd5' }}
                   >
                     <option value="">Select Model</option>
-                    {commonModels.map(model => (
+                    {availableModels.map(model => (
                       <option key={model} value={model}>{model}</option>
                     ))}
-                    <option value="Other">Other</option>
                   </select>
                   {formData.model === 'Other' && (
-                    <input 
-                      type="text" 
-                      name="otherModel" 
-                      value={formData.otherModel} 
-                      onChange={handleChange} 
-                      placeholder="Please specify model" 
-                      style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none', marginTop: '8px' }} 
+                    <input
+                      type="text"
+                      name="otherModel"
+                      value={formData.otherModel}
+                      onChange={handleChange}
+                      placeholder="Please specify model"
+                      className="w-full h-12 px-4 border rounded-xl mt-2 text-sm"
+                      style={{ borderColor: '#e6dfd5' }}
                     />
                   )}
                 </div>
+              </div>
 
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>SERIAL NUMBER (OPTIONAL)</label>
-                  <input type="text" name="serialNumber" value={formData.serialNumber} onChange={handleChange} placeholder="Enter your system serial designation number" style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none' }} />
-                </div>
+              {/* Serial Number - Required + Info Icon */}
+              <div>
+                <label className="block text-xs font-bold mb-2 flex items-center gap-2" style={{ color: '#6b5446' }}>
+                  SERIAL NUMBER <span className="text-red-500">*</span>
+                  <div className="group relative inline-block">
+                    <span className="cursor-help text-[#d97706] font-bold text-base">ⓘ</span>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-4 bg-white border rounded-2xl shadow-xl text-xs z-50" style={{ borderColor: '#e6dfd5' }}>
+                      <p className="font-semibold mb-2 text-[#453227]">How to find your Serial Number:</p>
+                      <ul className="list-disc pl-4 space-y-1.5 text-[#5c4436]">
+                        <li>Check the bottom of your laptop</li>
+                        <li>Look inside the battery compartment</li>
+                        <li>Check in BIOS/UEFI settings (press F2/Del during boot)</li>
+                        <li>Look at the original box or receipt</li>
+                      </ul>
+                    </div>
+                  </div>
+                </label>
+                <input
+                  type="text"
+                  name="serialNumber"
+                  value={formData.serialNumber}
+                  onChange={handleChange}
+                  placeholder="Enter device serial number"
+                  required
+                  className="w-full h-12 px-4 border rounded-xl text-sm"
+                  style={{ borderColor: '#e6dfd5' }}
+                />
               </div>
             </div>
 
             {/* Problem Description */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>PROBLEM DESCRIPTION</label>
-              <textarea name="problemDescription" value={formData.problemDescription} onChange={handleChange} rows={4} placeholder="Describe the issue you're facing in detail..." style={{ width: '100%', padding: '16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }} required />
+            <div className="mb-6">
+              <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>PROBLEM DESCRIPTION</label>
+              <textarea
+                name="problemDescription"
+                value={formData.problemDescription}
+                onChange={handleChange}
+                rows={4}
+                placeholder="Describe the issue you're facing in detail..."
+                required
+                className="w-full p-4 border rounded-2xl text-sm resize-y"
+                style={{ borderColor: '#e6dfd5' }}
+              />
             </div>
 
-            {/* Image Upload Area - keep as is */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>
+            {/* Image Upload */}
+            <div className="mb-6">
+              <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>
                 DEVICE IMAGES / DAMAGE PHOTOS (OPTIONAL)
               </label>
-              
-              <div style={{ position: 'relative', minHeight: '140px', border: '2px dashed #d97706', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fdfbf7', padding: '24px', boxSizing: 'border-box' }}>
-                
+              <div className="border-2 border-dashed rounded-2xl p-6 text-center" style={{ borderColor: '#d97706', backgroundColor: '#fdfbf7' }}>
                 {imagePreviews.length === 0 ? (
-                  <>
-                    <svg className="w-10 h-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} style={{ color: '#b45309', width: '40px', height: '40px' }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p style={{ fontSize: '13px', color: '#453227', margin: '0', fontWeight: '600' }}>Click or Drop your images here</p>
-                    <p style={{ fontSize: '11px', color: '#7c6251', margin: '4px 0 0 0' }}>(PNG, JPG, up to 10MB)</p>
-                    <input key={inputKey} type="file" name="deviceImages" onChange={handleImageChange} multiple accept="image/png, image/jpeg" style={{ position: 'absolute', inset: '0', width: '100%', height: '100%', opacity: '0', cursor: 'pointer', zIndex: 5 }} />
-                  </>
+                  <label className="cursor-pointer">
+                    <div className="flex flex-col items-center">
+                      <p className="font-semibold">Click or drop images here</p>
+                      <p className="text-xs mt-1" style={{ color: '#7c6251' }}>(PNG, JPG up to 10MB)</p>
+                    </div>
+                    <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
+                  </label>
                 ) : (
-                  <div style={{ width: '100%' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '14px', borderBottom: '1px dashed #e6dfd5', paddingBottom: '8px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#b45309' }}>UPLOADED PHOTOS ({imagePreviews.length})</span>
-                      <label style={{ marginLeft: 'auto', fontSize: '11px', backgroundColor: '#d97706', color: 'white', padding: '4px 10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-sm font-bold" style={{ color: '#b45309' }}>
+                        Uploaded Photos ({imagePreviews.length})
+                      </span>
+                      <label className="text-xs px-3 py-1.5 rounded-lg cursor-pointer text-white" style={{ backgroundColor: '#d97706' }}>
                         + Add More
-                        <input key={inputKey} type="file" name="deviceImages" onChange={handleImageChange} multiple accept="image/png, image/jpeg" style={{ display: 'none' }} />
+                        <input type="file" multiple accept="image/*" onChange={handleImageChange} className="hidden" />
                       </label>
                     </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '14px', justifyItems: 'center' }}>
+                    <div className="grid grid-cols-4 gap-3">
                       {imagePreviews.map((preview, index) => (
-                        <div key={index} style={{ position: 'relative', width: '80px', height: '70px', zIndex: '10' }}>
-                          <img src={preview} alt={`Upload preview ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px', border: '1px solid #d97706' }} />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              removeImage(index);
-                            }}
-                            style={{
-                              position: 'absolute',
-                              top: '-6px',
-                              right: '-6px',
-                              backgroundColor: '#ef4444',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '20px',
-                              height: '20px',
-                              fontSize: '13px',
-                              fontWeight: 'bold',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                            }}
-                          >
-                            ×
-                          </button>
+                        <div key={index} className="relative">
+                          <img src={preview} className="w-full h-20 object-cover rounded-xl border" />
+                          <button type="button" onClick={() => removeImage(index)} className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-xs">×</button>
                         </div>
                       ))}
                     </div>
@@ -344,17 +366,17 @@ export default function RequestRepairPage() {
             </div>
 
             {/* Device Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>DEVICE PASSWORD (IF ANY)</label>
-              <input type="text" name="password" value={formData.password} onChange={handleChange} placeholder="Leave blank if you prefer not to provide" style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none' }} />
+            <div className="mb-6">
+              <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>DEVICE PASSWORD (IF ANY)</label>
+              <input type="text" name="password" value={formData.password} onChange={handleChange} placeholder="Leave blank if you prefer not to provide" className="w-full h-12 px-4 border rounded-2xl text-sm" style={{ borderColor: '#e6dfd5' }} />
             </div>
 
             {/* Accessories */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '10px', letterSpacing: '0.05em' }}>
+            <div className="mb-6">
+              <label className="block text-xs font-bold tracking-wider mb-3" style={{ color: '#6b5446' }}>
                 ACCESSORIES INCLUDED
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }} className="grid grid-cols-2 md:grid-cols-5">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
                   { label: 'Charger', name: 'hasCharger' },
                   { label: 'Power Cord', name: 'hasPowerCord' },
@@ -362,118 +384,114 @@ export default function RequestRepairPage() {
                   { label: 'Bag', name: 'hasBag' },
                   { label: 'Other', name: 'hasOther' },
                 ].map((item) => {
-                  const isChecked = formData[item.name as keyof typeof formData] as boolean;
+                  const checked = formData[item.name as keyof typeof formData] as boolean;
                   return (
-                    <label key={item.name} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderRadius: '14px', border: isChecked ? '1px solid #d97706' : '1px solid #e6dfd5', backgroundColor: isChecked ? '#fef3c7' : '#ffffff', cursor: 'pointer', transition: 'all 0.2s', boxSizing: 'border-box' }}>
-                      <input type="checkbox" name={item.name} checked={isChecked} onChange={handleChange} style={{ width: '16px', height: '16px', accentColor: '#d97706', cursor: 'pointer' }} />
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: isChecked ? '#b45309' : '#5c4436' }}>{item.label}</span>
+                    <label key={item.name} className="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer" style={{ backgroundColor: checked ? '#fef3c7' : '#ffffff', borderColor: checked ? '#d97706' : '#e6dfd5' }}>
+                      <input type="checkbox" name={item.name} checked={checked} onChange={handleChange} className="accent-[#d97706]" />
+                      <span className="text-sm font-medium">{item.label}</span>
                     </label>
                   );
                 })}
               </div>
-
               {formData.hasOther && (
-                <div style={{ marginTop: '12px' }}>
-                  <input type="text" name="otherItems" value={formData.otherItems} onChange={handleChange} placeholder="Please specify other accessories..." style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none' }} />
-                </div>
+                <input type="text" name="otherItems" value={formData.otherItems} onChange={handleChange} placeholder="Please specify other accessories..." className="w-full h-12 px-4 border rounded-2xl mt-3 text-sm" style={{ borderColor: '#e6dfd5' }} />
               )}
             </div>
 
             {/* Delivery Option */}
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '10px', letterSpacing: '0.05em' }}>
+            <div className="mb-6">
+              <label className="block text-xs font-bold tracking-wider mb-3" style={{ color: '#6b5446' }}>
                 DELIVERY OPTION
               </label>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                <label style={{ flex: 1, padding: '14px 16px', borderRadius: '14px', border: formData.deliveryOption === 'dropoff' ? '2px solid #d97706' : '1px solid #e6dfd5', backgroundColor: formData.deliveryOption === 'dropoff' ? '#fef3c7' : '#ffffff', cursor: 'pointer' }}>
-                  <input 
-                    type="radio" 
-                    name="deliveryOption" 
-                    value="dropoff" 
-                    checked={formData.deliveryOption === 'dropoff'} 
-                    onChange={handleChange} 
-                    style={{ marginRight: '10px', accentColor: '#d97706' }} 
-                  />
-                  <span style={{ fontWeight: '600', color: formData.deliveryOption === 'dropoff' ? '#b45309' : '#5c4436' }}>Drop off at shop</span>
+              <div className="flex gap-3 mb-3">
+                <label className="flex-1 p-4 rounded-2xl border cursor-pointer transition" style={{ backgroundColor: formData.deliveryOption === 'dropoff' ? '#fef3c7' : '#ffffff', borderColor: formData.deliveryOption === 'dropoff' ? '#d97706' : '#e6dfd5' }}>
+                  <input type="radio" name="deliveryOption" value="dropoff" checked={formData.deliveryOption === 'dropoff'} onChange={handleChange} className="mr-2 accent-[#d97706]" />
+                  <span className="font-semibold text-sm" style={{ color: formData.deliveryOption === 'dropoff' ? '#b45309' : '#5c4436' }}>Drop off at shop</span>
                 </label>
 
-                <label style={{ flex: 1, padding: '14px 16px', borderRadius: '14px', border: formData.deliveryOption === 'pickup' ? '2px solid #d97706' : '1px solid #e6dfd5', backgroundColor: formData.deliveryOption === 'pickup' ? '#fef3c7' : '#ffffff', cursor: 'pointer' }}>
-                  <input 
-                    type="radio" 
-                    name="deliveryOption" 
-                    value="pickup" 
-                    checked={formData.deliveryOption === 'pickup'} 
-                    onChange={handleChange} 
-                    style={{ marginRight: '10px', accentColor: '#d97706' }} 
-                  />
-                  <span style={{ fontWeight: '600', color: formData.deliveryOption === 'pickup' ? '#b45309' : '#5c4436' }}>We pick up from you</span>
+                <label className="flex-1 p-4 rounded-2xl border cursor-pointer transition" style={{ backgroundColor: formData.deliveryOption === 'pickup' ? '#fef3c7' : '#ffffff', borderColor: formData.deliveryOption === 'pickup' ? '#d97706' : '#e6dfd5' }}>
+                  <input type="radio" name="deliveryOption" value="pickup" checked={formData.deliveryOption === 'pickup'} onChange={handleChange} className="mr-2 accent-[#d97706]" />
+                  <span className="font-semibold text-sm" style={{ color: formData.deliveryOption === 'pickup' ? '#b45309' : '#5c4436' }}>We pick up from you</span>
                 </label>
               </div>
 
-              {/* Show address when pickup is selected */}
+              {/* Drop off Address */}
+              {formData.deliveryOption === 'dropoff' && (
+                <div className="p-4 rounded-2xl border" style={{ backgroundColor: '#fefce8', borderColor: '#e6dfd5' }}>
+                  <p className="font-semibold text-sm mb-1" style={{ color: '#453227' }}>Drop off Address:</p>
+                  <p className="text-sm" style={{ color: '#5c4436' }}>
+                    Bright Light Technology Services<br />
+                    No. 123, Jalan Teknologi, Taman Teknologi,<br />
+                    57000 Kuala Lumpur
+                  </p>
+                  <p className="text-xs mt-2" style={{ color: '#7c6251' }}>
+                    Operating Hours: 9:00 AM – 6:00 PM (Monday – Saturday)
+                  </p>
+                </div>
+              )}
+
+              {/* Pickup Address */}
               {formData.deliveryOption === 'pickup' && (
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>YOUR ADDRESS FOR PICKUP</label>
-                  <textarea 
-                    name="pickupAddress" 
-                    value={formData.pickupAddress} 
-                    onChange={handleChange} 
-                    rows={2} 
-                    placeholder="Enter your full address for pickup..." 
-                    style={{ width: '100%', padding: '12px 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }} 
-                    required 
-                  />
-                </div>
-              )}
-
-              {/* Show shop address when drop off is selected */}
-              {formData.deliveryOption === 'dropoff' && (
-                <div style={{ backgroundColor: '#fefce8', padding: '14px 18px', borderRadius: '12px', border: '1px solid #e6dfd5' }}>
-                  <p style={{ fontSize: '13px', fontWeight: '600', color: '#453227', margin: '0 0 4px 0' }}>Drop off Address:</p>
-                  <p style={{ fontSize: '14px', color: '#5c4436', margin: 0 }}>123, Jalan Teknologi, Taman Teknologi, 57000 Kuala Lumpur</p>
-                  <p style={{ fontSize: '12px', color: '#7c6251', marginTop: '4px' }}>Operating Hours: 9:00 AM - 6:00 PM (Mon - Sat)</p>
+                  <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>YOUR ADDRESS FOR PICKUP</label>
+                  <textarea name="pickupAddress" value={formData.pickupAddress} onChange={handleChange} rows={3} placeholder="Enter your full address for pickup..." required className="w-full p-4 border rounded-2xl text-sm" style={{ borderColor: '#e6dfd5' }} />
                 </div>
               )}
             </div>
 
-            {/* Preferred Dates - keep as is */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="grid grid-cols-1 md:grid-cols-2">
+            {/* Preferred Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>
-                  PREFERRED START DATE (OPTIONAL)
-                </label>
-                <input type="date" name="preferredStartDate" value={formData.preferredStartDate} onChange={handleChange} style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none' }} />
+                <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>PREFERRED START DATE (OPTIONAL)</label>
+                <input type="date" name="preferredStartDate" value={formData.preferredStartDate} onChange={handleChange} className="w-full h-12 px-4 border rounded-2xl text-sm" style={{ borderColor: '#e6dfd5' }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#6b5446', marginBottom: '6px' }}>
-                  PREFERRED END DATE (OPTIONAL)
-                </label>
-                <input type="date" name="preferredEndDate" value={formData.preferredEndDate} onChange={handleChange} style={{ width: '100%', height: '52px', padding: '0 16px', border: '1px solid #e6dfd5', borderRadius: '12px', fontSize: '15px', color: '#453227', backgroundColor: '#ffffff', boxSizing: 'border-box', outline: 'none' }} />
+                <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>PREFERRED END DATE (OPTIONAL)</label>
+                <input type="date" name="preferredEndDate" value={formData.preferredEndDate} onChange={handleChange} className="w-full h-12 px-4 border rounded-2xl text-sm" style={{ borderColor: '#e6dfd5' }} />
               </div>
             </div>
 
-            {/* Terms & Conditions */}
-            <div style={{ backgroundColor: '#fefce8', padding: '20px 24px', borderRadius: '16px', border: '1px solid #e6dfd5' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#453227', marginBottom: '12px' }}>Terms & Conditions</h3>
-              <ol style={{ fontSize: '13px', color: '#5c4436', paddingLeft: '18px', lineHeight: '1.6', margin: 0 }}>
-                <li style={{ marginBottom: '8px' }}>
+            {/* Terms & Conditions - Full Version */}
+            <div className="mb-6 p-6 rounded-2xl border" style={{ backgroundColor: '#fefce8', borderColor: '#e6dfd5' }}>
+              <h3 className="font-bold text-base mb-4" style={{ color: '#453227' }}>Terms & Conditions</h3>
+
+              <ol className="text-sm space-y-3 mb-5 pl-5 list-decimal" style={{ color: '#5c4436' }}>
+                <li>
                   All services provided included testing before handing over to customers. Any defects, need to be informed via SMS / WhatsApp / Phone Call / Email within <strong>7 DAYS</strong> from the handover date.
                 </li>
-                <li style={{ marginBottom: '8px' }}>
+                <li>
                   Item(s) not collected for <strong>3 MONTHS</strong> after informing via SMS/WhatsApp/Phone Call/Email will be considered <strong>CASE CLOSED</strong> and we have the rights to <strong>DISPOSE</strong> the item(s).
                 </li>
                 <li>
                   For data backup, all backed up data will be kept <strong>ONLY FOR 1 MONTH</strong> and we reserve the rights to <strong>DESTROY</strong> the data.
                 </li>
               </ol>
+
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="termsAccepted"
+                  checked={formData.termsAccepted}
+                  onChange={handleChange}
+                  className="mt-1 w-5 h-5 accent-[#d97706] flex-shrink-0"
+                />
+                <span className="text-sm font-medium" style={{ color: '#453227' }}>
+                  I have read and agree to the Terms & Conditions above.
+                </span>
+              </label>
             </div>
 
             {/* Submit Button */}
-            <button type="submit" style={{ width: '100%', height: '56px', backgroundColor: '#d97706', color: '#ffffff', borderRadius: '14px', fontSize: '16px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'background-color 0.2s', marginTop: '8px', boxSizing: 'border-box' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#b45309'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#d97706'} >
+            <button
+              type="submit"
+              disabled={!isFormValid}
+              className="w-full h-14 rounded-2xl font-bold text-white text-base transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#d97706' }}
+            >
               Submit Repair Request
             </button>
 
-            <p style={{ textAlign: 'center', fontSize: '12px', color: '#7c6251', margin: '0', lineHeight: '1.5' }}>
+            <p className="text-center text-xs mt-4" style={{ color: '#7c6251' }}>
               Our dedicated response team will reach out to you within 24 hours after request submission.
             </p>
           </form>

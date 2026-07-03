@@ -1,27 +1,30 @@
-import { prisma } from './prisma';
+import { PrismaClient } from '@prisma/client';
 
-export async function generateWorkOrderNumber(source: 'WEB' | 'A-BL'): Promise<string> {
-  const today = new Date();
-  
-  // Format: DDMMYY
-  const datePart = today.toLocaleDateString('en-GB').replace(/\//g, '');
+const prisma = new PrismaClient();
 
-  // Get start and end of today
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+export async function generateWorkOrderNumber(prefix: 'WEB' | 'A-BL'): Promise<string> {
+    const today = new Date();
 
-  // Count how many repairs were created today (shared between customer & agent)
-  const countToday = await prisma.repairRequest.count({
-    where: {
-      createdAt: {
-        gte: startOfDay,
-        lt: endOfDay,
-      },
-    },
-  });
+    // Format date: DDMMYY
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const year = String(today.getFullYear()).slice(-2);
+    const datePart = `${day}${month}${year}`;
 
-  // Next number (001, 002, 003...)
-  const nextNumber = (countToday + 1).toString().padStart(3, '0');
+    // Count ALL repair requests created TODAY (both WEB and A-BL)
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-  return `WO-${source}-${datePart}-${nextNumber}`;
+    const count = await prisma.repairRequest.count({
+        where: {
+            createdAt: {
+                gte: startOfDay,
+                lt: endOfDay,
+            },
+        },
+    });
+
+    const nextNumber = String(count + 1).padStart(3, '0');
+
+    return `WO-${prefix}-${datePart}-${nextNumber}`;
 }

@@ -5,12 +5,13 @@ import AdminLayout from '@/components/AdminLayout';
 import { Html5Qrcode } from 'html5-qrcode';
 
 const STATUS_OPTIONS = [
-  'Pending', 'Received', 'Diagnosed', 'In Progress', 
+  'Pending', 'Received', 'Diagnosed', 'In Progress',
   'Awaiting Parts', 'Ready for Collection', 'Completed', 'Cancelled'
 ];
 
 interface Repair {
   id: number;
+  workOrderNumber?: string;
   brand: string;
   model: string;
   status: string;
@@ -20,6 +21,10 @@ interface Repair {
   hasMouse?: boolean;
   hasBag?: boolean;
   otherItems?: string;
+  user?: {
+    fullName: string;
+    phone: string;
+  };
 }
 
 export default function StaffScanQRPage() {
@@ -31,6 +36,7 @@ export default function StaffScanQRPage() {
   const [messageType, setMessageType] = useState<'success' | 'error'>('success');
   const [isScanning, setIsScanning] = useState(false);
   const [selectedAction, setSelectedAction] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<Repair[]>([]);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
@@ -53,7 +59,6 @@ export default function StaffScanQRPage() {
 
   const [status, setStatus] = useState('');
 
-  // Quick action buttons
   const quickActions = [
     { label: 'Mark as Received', status: 'Received' },
     { label: 'Mark as Diagnosed', status: 'Diagnosed' },
@@ -78,7 +83,7 @@ export default function StaffScanQRPage() {
             setIsScanning(false);
             await fetchRepairById(decodedText);
           },
-          () => {}
+          () => { }
         );
 
         setIsScanning(true);
@@ -88,16 +93,86 @@ export default function StaffScanQRPage() {
       }
     } else {
       if (html5QrCodeRef.current) {
-        try { await html5QrCodeRef.current.stop(); } catch {}
+        try { await html5QrCodeRef.current.stop(); } catch { }
         html5QrCodeRef.current = null;
       }
       setIsScanning(false);
     }
   };
 
+  const getWorkOrderDisplay = (r: Repair) => {
+    return r.workOrderNumber || `WO-${String(r.id).padStart(3, '0')}`;
+  };
+
+  // ==================== IMPROVED: Smart Search ====================
+  const handleManualSearch = async () => {
+    if (!manualWO.trim()) return;
+
+    const input = manualWO.trim().toUpperCase();
+    setMessage('');
+    setSearchResults([]);
+    setLoading(true);
+
+    try {
+      // Case 1: Full Work Order format (WO-WEB-020726-001 or WO-A-BL-...)
+      if (input.startsWith('WO-')) {
+        // Extract ID from format like WO-WEB-020726-001
+        const parts = input.split('-');
+        const lastPart = parts[parts.length - 1];
+        const id = parseInt(lastPart);
+
+        if (!isNaN(id)) {
+          await fetchRepairById(String(id));
+          return;
+        }
+      }
+
+      // Case 2: Date search (020726, 02-07-26, 02/07/2026, etc.)
+      const dateMatch = input.match(/(\d{1,2})[\/\-]?(\d{1,2})[\/\-]?(\d{2,4})/);
+      if (dateMatch) {
+        const day = dateMatch[1].padStart(2, '0');
+        const month = dateMatch[2].padStart(2, '0');
+        const year = dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3];
+        const dateStr = `${year}-${month}-${day}`;
+
+        // Fetch repairs by date
+        const res = await fetch(`/api/admin/repairs?date=${dateStr}`);
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+          setSearchResults(data);
+          setMessage(`Found ${data.length} order(s) on ${day}/${month}/${year}`);
+          setMessageType('success');
+        } else {
+          setMessage('No orders found on this date.');
+          setMessageType('error');
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Case 3: Just a number (old behavior)
+      const id = input.replace('WO-', '').replace(/^0+/, '');
+      if (!isNaN(Number(id))) {
+        await fetchRepairById(id);
+        return;
+      }
+
+      setMessage('Invalid input. Please enter a valid Work Order number or date.');
+      setMessageType('error');
+
+    } catch (error) {
+      setMessage('Error searching. Please try again.');
+      setMessageType('error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchRepairById = async (idOrUrl: string) => {
     setLoading(true);
     setMessage('');
+    setSearchResults([]);
 
     try {
       let id = idOrUrl;
@@ -127,7 +202,6 @@ export default function StaffScanQRPage() {
           otherItems: data.otherItems || '',
         });
 
-        // ✅ Auto update status if quick action was selected
         if (selectedAction) {
           await updateStatusAutomatically(data.id, selectedAction);
         }
@@ -143,7 +217,79 @@ export default function StaffScanQRPage() {
     }
   };
 
-  // Auto update status after scanning
+  // Select a repair from search results list
+  const selectRepairFromList = (selectedRepair: Repair) => {
+    setRepair(selectedRepair);
+    setStatus(selectedRepair.status);
+    setSearchResults([]);
+    setManualWO('');
+    setMessage('');
+  };
+
+  // ==================== AUTO WHATSAPP FUNCTION ====================
+  const sendWhatsAppUpdate = (repairData: Repair, newStatus: string) => {
+    if (!repairData.user?.phone) return;
+
+    const workOrderNumber = getWorkOrderDisplay(repairData);
+    const customerName = repairData.user?.fullName || 'Customer';
+
+    let accessoriesText = 'No accessories recorded';
+    const accList: string[] = [];
+    if (returnedAccessories.hasCharger) accList.push('Charger');
+    if (returnedAccessories.hasPowerCord) accList.push('Power Cord');
+    if (returnedAccessories.hasMouse) accList.push('Mouse');
+    if (returnedAccessories.hasBag) accList.push('Laptop Bag');
+    if (returnedAccessories.otherItems) accList.push(returnedAccessories.otherItems);
+    if (accList.length > 0) accessoriesText = accList.join(', ');
+
+    let conditionText = '';
+    const condList: string[] = [];
+    if (condition.hasDent) condList.push('Dented');
+    if (condition.hasScratch) condList.push('Scratches');
+    if (condition.hasSticker) condList.push('Stickers');
+    if (condition.hasStain) condList.push('Stains');
+    if (condition.otherConditions.length > 0) condList.push(...condition.otherConditions);
+    if (condList.length > 0) conditionText = `\nPhysical Condition: ${condList.join(', ')}`;
+
+    let message = '';
+
+    if (newStatus === 'Received') {
+      message = `Dear ${customerName},
+
+We have successfully received your device.
+
+Work Order: ${workOrderNumber}
+Status: Received
+
+Accessories Received:
+${accessoriesText}${conditionText}
+
+Thank you for trusting Bright Light Technology Services. We will update you on the next steps soon.
+
+WhatsApp: +60 11-6319 9899`;
+    }
+
+    else if (newStatus === 'Ready for Collection') {
+      message = `Dear ${customerName},
+
+Great news! Your device is now **Ready for Collection**.
+
+Work Order: ${workOrderNumber}
+
+Please come to our shop to collect your device during operating hours.
+
+Thank you for choosing Bright Light Technology Services.
+
+WhatsApp: +60 11-6319 9899`;
+    }
+
+    if (message) {
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${repairData.user.phone.replace(/\D/g, '')}?text=${encodedMessage}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
+
   const updateStatusAutomatically = async (repairId: number, newStatus: string) => {
     try {
       await fetch(`/api/admin/repairs/${repairId}`, {
@@ -156,9 +302,7 @@ export default function StaffScanQRPage() {
       setMessage(`Status updated to: ${newStatus}`);
       setMessageType('success');
 
-      // If it's "Received", keep the form open for accessories & condition
       if (newStatus !== 'Received') {
-        // For other statuses, close after 2 seconds
         setTimeout(() => {
           setRepair(null);
           setSelectedAction('');
@@ -175,22 +319,27 @@ export default function StaffScanQRPage() {
     setSelectedAction(actionStatus);
     setMessage(`Scan QR to mark as "${actionStatus}"`);
     setMessageType('success');
-    
-    // Auto start scanner if not already scanning
+
     if (!isScanning) {
       toggleScanner();
     }
   };
 
-  const handleManualSearch = () => {
-    if (!manualWO) return;
-    const id = manualWO.replace('WO-', '').replace(/^0+/, '');
-    fetchRepairById(id);
+  const addOtherCondition = () => {
+    if (!condition.newOther.trim()) return;
+    setCondition(prev => ({
+      ...prev,
+      otherConditions: [...prev.otherConditions, prev.newOther.trim()],
+      newOther: '',
+    }));
   };
 
-  // Your existing functions (addOtherCondition, removeOtherCondition, handleSave) stay the same
-  const addOtherCondition = () => { /* ... keep your code ... */ };
-  const removeOtherCondition = (index: number) => { /* ... keep your code ... */ };
+  const removeOtherCondition = (index: number) => {
+    setCondition(prev => ({
+      ...prev,
+      otherConditions: prev.otherConditions.filter((_, i) => i !== index),
+    }));
+  };
 
   const handleSave = async () => {
     if (!repair) return;
@@ -220,12 +369,19 @@ export default function StaffScanQRPage() {
       setMessage('Changes saved successfully!');
       setMessageType('success');
 
-      // Reset after saving
+      if (status === 'Received' || status === 'Ready for Collection') {
+        setTimeout(() => {
+          sendWhatsAppUpdate(repair, status);
+        }, 800);
+      }
+
       setTimeout(() => {
         setRepair(null);
         setSelectedAction('');
         setMessage('');
-      }, 1500);
+        setSearchResults([]);
+      }, 2000);
+
     } catch (error) {
       setMessage('Failed to save');
       setMessageType('error');
@@ -234,47 +390,46 @@ export default function StaffScanQRPage() {
     }
   };
 
-return (
-  <AdminLayout>
-    {/* ✅ Fixed: Full width on mobile, centered on desktop */}
-    <div className="w-full px-4 py-6 md:max-w-4xl md:mx-auto md:py-8">
-      
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold" style={{ color: '#453227' }}>
-          Scan QR / Collection
-        </h1>
-        <p className="text-sm mt-1" style={{ color: '#7c6251' }}>
-          Quick status update via QR scan
-        </p>
-      </div>
+  return (
+    <AdminLayout>
+      <div className="w-full px-4 py-6 md:max-w-4xl md:mx-auto md:py-8">
 
-      {/* Quick Action Buttons - Mobile Friendly */}
-      {!repair && (
-        <div className="mb-6">
-          <p className="text-sm font-medium mb-3 px-1" style={{ color: '#5c4436' }}>
-            Quick Actions (Tap then Scan)
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold" style={{ color: '#453227' }}>
+            Scan QR / Collection
+          </h1>
+          <p className="text-sm mt-1" style={{ color: '#7c6251' }}>
+            Quick status update via QR scan
           </p>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {quickActions.map((action, index) => (
-              <button
-                key={index}
-                onClick={() => handleQuickAction(action.status)}
-                className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-[0.985] text-center"
-                style={{ 
-                  backgroundColor: selectedAction === action.status ? '#d97706' : '#fef3c7',
-                  color: selectedAction === action.status ? '#ffffff' : '#92400e',
-                  minHeight: '52px'
-                }}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
         </div>
-      )}
 
-        {/* Scanner Section */}
+        {/* Quick Actions */}
+        {!repair && (
+          <div className="mb-6">
+            <p className="text-sm font-medium mb-3 px-1" style={{ color: '#5c4436' }}>
+              Quick Actions (Tap then Scan)
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {quickActions.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleQuickAction(action.status)}
+                  className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-[0.985] text-center"
+                  style={{
+                    backgroundColor: selectedAction === action.status ? '#d97706' : '#fef3c7',
+                    color: selectedAction === action.status ? '#ffffff' : '#92400e',
+                    minHeight: '52px'
+                  }}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Scanner + Search Section */}
         {!repair && (
           <div className="bg-white border rounded-2xl p-8 mb-8" style={{ borderColor: '#e6dfd5' }}>
             <div className="text-center mb-6">
@@ -294,52 +449,102 @@ return (
             </button>
 
             {message && (
-              <div className={`mt-4 px-4 py-3 rounded-xl text-sm font-medium text-center ${
-                messageType === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
-              }`}>
+              <div className={`mt-4 px-4 py-3 rounded-xl text-sm font-medium text-center ${messageType === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
                 {message}
               </div>
             )}
 
-            {/* Manual Input */}
+            {/* ==================== IMPROVED MANUAL SEARCH ==================== */}
             <div className="mt-8 pt-8 border-t" style={{ borderColor: '#e6dfd5' }}>
-              <p className="text-sm font-medium mb-3" style={{ color: '#5c4436' }}>Or enter WO number manually</p>
-              <div className="flex gap-3">
+              <p className="text-sm font-medium mb-3" style={{ color: '#5c4436' }}>
+                Search by Work Order Number or Date
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
-                  placeholder="WO-001 or 1"
+                  placeholder="WO-WEB-020726-001 or 02/07/2026"
                   value={manualWO}
                   onChange={(e) => setManualWO(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
                   className="flex-1 border rounded-xl px-5 py-3 text-lg placeholder:text-[#7c6251] text-[#453227]"
-                  style={{ borderColor: '#d4c3b0' }}
+                  style={{ borderColor: '#d4c3b0', backgroundColor: '#ffffff' }}
                 />
-                <button onClick={handleManualSearch} className="px-8 rounded-xl font-semibold" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                  Search
+                <button
+                  onClick={handleManualSearch}
+                  disabled={loading}
+                  className="w-full sm:w-auto px-8 py-3 rounded-xl font-semibold whitespace-nowrap"
+                  style={{ backgroundColor: '#fef3c7', color: '#92400e' }}
+                >
+                  {loading ? 'Searching...' : 'Search'}
                 </button>
               </div>
+
+              {/* Search Results List (for date search) */}
+              {searchResults.length > 0 && (
+                <div className="mt-6">
+                  <p className="text-sm font-medium mb-3" style={{ color: '#5c4436' }}>
+                    Search Results:
+                  </p>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {searchResults.map((r) => (
+                      <button
+                        key={r.id}
+                        onClick={() => selectRepairFromList(r)}
+                        className="w-full text-left p-4 rounded-xl border hover:bg-[#fefce8] transition flex justify-between items-center"
+                        style={{ borderColor: '#e6dfd5' }}
+                      >
+                        <div>
+                          <div className="font-semibold" style={{ color: '#453227' }}>
+                            {getWorkOrderDisplay(r)}
+                          </div>
+                          <div className="text-sm" style={{ color: '#7c6251' }}>
+                            {r.brand} {r.model} • {r.user?.fullName}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="px-3 py-1 text-xs rounded-full" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                            {r.status}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Repair Details + Form */}
+        {/* Repair Detail Form */}
         {repair && (
           <div className="space-y-6">
-            {/* Repair Summary */}
             <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <p className="text-sm" style={{ color: '#7c6251' }}>Work Order</p>
-                  <p className="text-2xl font-bold" style={{ color: '#453227' }}>WO-{String(repair.id).padStart(3, '0')}</p>
+                  <p className="text-2xl font-bold" style={{ color: '#453227' }}>
+                    {getWorkOrderDisplay(repair)}
+                  </p>
                 </div>
-                <button onClick={() => { setRepair(null); setSelectedAction(''); setMessage(''); }} className="text-sm px-4 py-2 rounded-lg" style={{ color: '#7c6251' }}>
+                <button
+                  onClick={() => {
+                    setRepair(null);
+                    setSelectedAction('');
+                    setMessage('');
+                    setSearchResults([]);
+                  }}
+                  className="text-sm px-4 py-2 rounded-lg"
+                  style={{ color: '#7c6251' }}
+                >
                   Cancel
                 </button>
               </div>
-              <p className="text-lg font-semibold" style={{ color: '#453227' }}>{repair.brand} {repair.model}</p>
+              <p className="text-lg font-semibold" style={{ color: '#453227' }}>
+                {repair.brand} {repair.model}
+              </p>
             </div>
 
-            {/* Show full form only if action is "Received" or no quick action was used */}
             {(selectedAction === 'Received' || !selectedAction) && (
               <>
                 {/* Accessories */}
@@ -353,17 +558,26 @@ return (
                       { key: 'hasBag', label: 'Laptop Bag' },
                     ].map(item => (
                       <label key={item.key} className="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" checked={returnedAccessories[item.key as keyof typeof returnedAccessories] as boolean}
+                        <input
+                          type="checkbox"
+                          checked={returnedAccessories[item.key as keyof typeof returnedAccessories] as boolean}
                           onChange={(e) => setReturnedAccessories(prev => ({ ...prev, [item.key]: e.target.checked }))}
-                          className="w-5 h-5 accent-[#d97706]" />
+                          className="w-5 h-5 accent-[#d97706]"
+                        />
                         <span style={{ color: '#453227' }}>{item.label}</span>
                       </label>
                     ))}
                   </div>
                   <div className="mt-4">
                     <label className="block text-sm font-medium mb-1" style={{ color: '#5c4436' }}>Other Items</label>
-                    <input type="text" value={returnedAccessories.otherItems} onChange={(e) => setReturnedAccessories(prev => ({ ...prev, otherItems: e.target.value }))}
-                      className="w-full border rounded-xl px-4 py-2 text-sm" style={{ borderColor: '#d4c3b0' }} placeholder="e.g. External HDD" />
+                    <input
+                      type="text"
+                      value={returnedAccessories.otherItems}
+                      onChange={(e) => setReturnedAccessories(prev => ({ ...prev, otherItems: e.target.value }))}
+                      className="w-full border rounded-xl px-4 py-2 text-sm"
+                      style={{ borderColor: '#d4c3b0' }}
+                      placeholder="e.g. External HDD"
+                    />
                   </div>
                 </div>
 
@@ -372,13 +586,18 @@ return (
                   <h3 className="font-semibold text-lg mb-4" style={{ color: '#453227' }}>Physical Condition</h3>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-4">
                     {[
-                      { key: 'hasDent', label: 'Dented' }, { key: 'hasScratch', label: 'Scratches' },
-                      { key: 'hasSticker', label: 'Stickers' }, { key: 'hasStain', label: 'Stains' },
+                      { key: 'hasDent', label: 'Dented' },
+                      { key: 'hasScratch', label: 'Scratches' },
+                      { key: 'hasSticker', label: 'Stickers' },
+                      { key: 'hasStain', label: 'Stains' },
                     ].map(item => (
                       <label key={item.key} className="flex items-center gap-3 cursor-pointer">
-                        <input type="checkbox" checked={condition[item.key as keyof typeof condition] as boolean}
+                        <input
+                          type="checkbox"
+                          checked={condition[item.key as keyof typeof condition] as boolean}
                           onChange={(e) => setCondition(prev => ({ ...prev, [item.key]: e.target.checked }))}
-                          className="w-5 h-5 accent-[#d97706]" />
+                          className="w-5 h-5 accent-[#d97706]"
+                        />
                         <span style={{ color: '#453227' }}>{item.label}</span>
                       </label>
                     ))}
@@ -390,14 +609,28 @@ return (
             {/* Status & Save */}
             <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
               <h3 className="font-semibold text-lg mb-4" style={{ color: '#453227' }}>Update Status</h3>
-              
-              <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border rounded-xl px-4 py-3 text-lg mb-5" style={{ borderColor: '#d4c3b0' }}>
+
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full border rounded-xl px-4 py-3 text-lg mb-5"
+                style={{ borderColor: '#d4c3b0' }}
+              >
                 {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
 
-              {message && <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${messageType === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{message}</div>}
+              {message && (
+                <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${messageType === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                  {message}
+                </div>
+              )}
 
-              <button onClick={handleSave} disabled={saving} className="w-full py-3.5 rounded-xl font-semibold text-white text-lg" style={{ backgroundColor: '#d97706' }}>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full py-3.5 rounded-xl font-semibold text-white text-lg"
+                style={{ backgroundColor: '#d97706' }}
+              >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>

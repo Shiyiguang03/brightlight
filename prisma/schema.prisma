@@ -33,6 +33,10 @@ model RepairRequest {
   userId Int
   user   User @relation(fields: [userId], references: [id])
 
+  customerName       String?
+  customerPhone      String?
+  customerAddress    String?
+
   submittedByAgentId Int?
   submittedByAgent   User? @relation("SubmittedByAgent", fields: [submittedByAgentId], references: [id])
 

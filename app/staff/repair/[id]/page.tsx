@@ -6,7 +6,7 @@ import AdminLayout from '@/components/AdminLayout';
 import QRCode from 'qrcode';
 
 const STATUS_OPTIONS = [
-  'Pending', 'Received', 'Diagnosed', 'In Progress', 
+  'Pending', 'Received', 'Diagnosed', 'In Progress',
   'Awaiting Parts', 'Ready for Collection', 'Completed', 'Cancelled'
 ];
 
@@ -35,13 +35,8 @@ export default function StaffRepairDetail() {
   // ==================== GET WORK ORDER NUMBER ====================
   const getWorkOrderNumber = (repairData: any): string => {
     if (!repairData) return '';
+    if (repairData.workOrderNumber) return repairData.workOrderNumber;
 
-    // If we already have a stored workOrderNumber, use it
-    if (repairData.workOrderNumber) {
-      return repairData.workOrderNumber;
-    }
-
-    // Fallback: Generate dynamically (for existing data)
     const isAgentCreated = repairData.user?.role === 'AGENT' || repairData.user?.role === 'SUPER ADMIN';
     const source = isAgentCreated ? 'A-BL' : 'WEB';
     const datePart = new Date().toLocaleDateString('en-GB').replace(/\//g, '');
@@ -59,10 +54,7 @@ export default function StaffRepairDetail() {
     if (repair) {
       const generateQR = async () => {
         const workOrderNumber = getWorkOrderNumber(repair);
-        const dataUrl = await QRCode.toDataURL(workOrderNumber, {
-          width: 200,
-          margin: 2,
-        });
+        const dataUrl = await QRCode.toDataURL(workOrderNumber, { width: 200, margin: 2 });
         setQrCodeUrl(dataUrl);
       };
       generateQR();
@@ -117,6 +109,22 @@ export default function StaffRepairDetail() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // ==================== CONTACT CUSTOMER (Open Chat Directly) ====================
+  const handleContactCustomer = () => {
+    if (!repair?.user?.phone) {
+      alert('Customer phone number not available.');
+      return;
+    }
+
+    const workOrderNumber = getWorkOrderNumber(repair);
+    const customerName = repair.user?.fullName || 'Customer';
+
+    // Open WhatsApp chat directly with short greeting
+    const whatsappUrl = `https://wa.me/${repair.user.phone.replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(customerName)},%20this%20is%20regarding%20your%20repair%20work%20order%20${workOrderNumber}.`;
+
+    window.open(whatsappUrl, '_blank');
   };
 
   const handleAddNote = async () => {
@@ -282,17 +290,28 @@ export default function StaffRepairDetail() {
             <p style={{ color: '#5c4436' }}>{repair.user?.fullName || 'Unknown Customer'}</p>
           </div>
 
-          <button
-            onClick={handlePrintWorkOrder}
-            className="flex items-center gap-x-2 px-6 py-3 rounded-2xl font-semibold text-white shadow-sm active:scale-[0.985]"
-            style={{ backgroundColor: '#d97706' }}
-          >
-            🖨️ Print Work Order
-          </button>
+          <div className="flex gap-3">
+            {/* Contact Customer Button - Opens free chat */}
+            <button
+              onClick={handleContactCustomer}
+              className="flex items-center gap-x-2 px-5 py-3 rounded-2xl font-semibold border active:scale-[0.985]"
+              style={{ borderColor: '#d97706', color: '#d97706' }}
+            >
+              💬 Contact Customer
+            </button>
+
+            <button
+              onClick={handlePrintWorkOrder}
+              className="flex items-center gap-x-2 px-6 py-3 rounded-2xl font-semibold text-white shadow-sm active:scale-[0.985]"
+              style={{ backgroundColor: '#d97706' }}
+            >
+              🖨️ Print Work Order
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
+
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
 
@@ -301,7 +320,7 @@ export default function StaffRepairDetail() {
               <h3 className="font-bold mb-4" style={{ color: '#453227' }}>Device Information</h3>
               <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
                 <div><span style={{ color: '#7c6251' }}>Device Type:</span> <span style={{ color: '#453227' }}>{repair.deviceType}</span></div>
-                <div><span style={{ color: '#7c6251' }}>Brand & Model:</span> <span style={{ color: '#453227' }}>{repair.brand} {repair.model}</span></div>
+                <div><span style={{ color: '#7c6251' }}>Brand & Model:</span> <span style={{ color: '#453227' }}>{repair.brand} ${repair.model}</span></div>
                 <div className="col-span-2">
                   <span style={{ color: '#7c6251' }}>Problem:</span><br />
                   <span style={{ color: '#453227' }}>{repair.problemDescription}</span>
@@ -362,7 +381,7 @@ export default function StaffRepairDetail() {
 
           {/* Right Column */}
           <div className="space-y-6">
-            
+
             {/* Update Status */}
             <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
               <h3 className="font-bold mb-4" style={{ color: '#453227' }}>Update Status</h3>
