@@ -4,9 +4,13 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }   // ← Important: params is now a Promise
+) {
     try {
-        const userId = parseInt(params.id);
+        const { id } = await params;           // ← You must await it
+        const userId = parseInt(id);
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -27,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error(error);
+        console.error('Reset password error:', error);
         return NextResponse.json({ error: 'Failed to reset password' }, { status: 500 });
     }
 }
