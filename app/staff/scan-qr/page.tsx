@@ -104,84 +104,37 @@ export default function StaffScanQRPage() {
     return r.workOrderNumber || `WO-${String(r.id).padStart(3, '0')}`;
   };
 
-  // ==================== IMPROVED: Smart Search ====================
-  const handleManualSearch = async () => {
-    if (!manualWO.trim()) return;
-
-    const input = manualWO.trim().toUpperCase();
-    setMessage('');
-    setSearchResults([]);
-    setLoading(true);
-
-    try {
-      // Case 1: Full Work Order format (WO-WEB-020726-001 or WO-A-BL-...)
-      if (input.startsWith('WO-')) {
-        // Extract ID from format like WO-WEB-020726-001
-        const parts = input.split('-');
-        const lastPart = parts[parts.length - 1];
-        const id = parseInt(lastPart);
-
-        if (!isNaN(id)) {
-          await fetchRepairById(String(id));
-          return;
-        }
-      }
-
-      // Case 2: Date search (020726, 02-07-26, 02/07/2026, etc.)
-      const dateMatch = input.match(/(\d{1,2})[\/\-]?(\d{1,2})[\/\-]?(\d{2,4})/);
-      if (dateMatch) {
-        const day = dateMatch[1].padStart(2, '0');
-        const month = dateMatch[2].padStart(2, '0');
-        const year = dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3];
-        const dateStr = `${year}-${month}-${day}`;
-
-        // Fetch repairs by date
-        const res = await fetch(`/api/admin/repairs?date=${dateStr}`);
-        const data = await res.json();
-
-        if (data && data.length > 0) {
-          setSearchResults(data);
-          setMessage(`Found ${data.length} order(s) on ${day}/${month}/${year}`);
-          setMessageType('success');
-        } else {
-          setMessage('No orders found on this date.');
-          setMessageType('error');
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Case 3: Just a number (old behavior)
-      const id = input.replace('WO-', '').replace(/^0+/, '');
-      if (!isNaN(Number(id))) {
-        await fetchRepairById(id);
-        return;
-      }
-
-      setMessage('Invalid input. Please enter a valid Work Order number or date.');
-      setMessageType('error');
-
-    } catch (error) {
-      setMessage('Error searching. Please try again.');
-      setMessageType('error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ==================== IMPROVED: Smart ID Extraction ====================
   const fetchRepairById = async (idOrUrl: string) => {
     setLoading(true);
     setMessage('');
     setSearchResults([]);
 
     try {
-      let id = idOrUrl;
-      if (idOrUrl.includes('/')) id = idOrUrl.split('/').pop() || idOrUrl;
-      if (id.toUpperCase().startsWith('WO-')) id = id.replace(/WO-/i, '');
-      id = id.replace(/^0+/, '');
+      let input = idOrUrl.trim().toUpperCase();
 
-      if (!id || isNaN(Number(id))) {
-        setMessage('This is not a valid Work Order QR code.');
+      if (input.includes('/')) {
+        input = input.split('/').pop() || input;
+      }
+
+      let id: number | null = null;
+
+      // Support full format: WO-WEB-020726-001 or WO-A-BL-020726-005
+      if (input.startsWith('WO-')) {
+        const parts = input.split('-');
+        const lastPart = parts[parts.length - 1];
+        const parsed = parseInt(lastPart);
+        if (!isNaN(parsed)) id = parsed;
+      }
+      // Plain number
+      else {
+        const cleaned = input.replace(/^0+/, '');
+        const parsed = parseInt(cleaned);
+        if (!isNaN(parsed)) id = parsed;
+      }
+
+      if (!id || isNaN(id)) {
+        setMessage('This is not a valid Work Order QR code or number.');
         setMessageType('error');
         setLoading(false);
         return;
@@ -210,6 +163,7 @@ export default function StaffScanQRPage() {
         setMessageType('error');
       }
     } catch (error) {
+      console.error(error);
       setMessage('Error loading repair');
       setMessageType('error');
     } finally {
@@ -217,7 +171,13 @@ export default function StaffScanQRPage() {
     }
   };
 
-  // Select a repair from search results list
+  // ==================== MANUAL SEARCH (Now uses the improved function) ====================
+  const handleManualSearch = async () => {
+    if (!manualWO.trim()) return;
+    await fetchRepairById(manualWO);
+  };
+
+  // Select from date search results
   const selectRepairFromList = (selectedRepair: Repair) => {
     setRepair(selectedRepair);
     setStatus(selectedRepair.status);
@@ -226,7 +186,7 @@ export default function StaffScanQRPage() {
     setMessage('');
   };
 
-  // ==================== AUTO WHATSAPP FUNCTION ====================
+  // ==================== AUTO WHATSAPP ====================
   const sendWhatsAppUpdate = (repairData: Repair, newStatus: string) => {
     if (!repairData.user?.phone) return;
 
@@ -454,7 +414,7 @@ WhatsApp: +60 11-6319 9899`;
               </div>
             )}
 
-            {/* ==================== IMPROVED MANUAL SEARCH ==================== */}
+            {/* Manual Search */}
             <div className="mt-8 pt-8 border-t" style={{ borderColor: '#e6dfd5' }}>
               <p className="text-sm font-medium mb-3" style={{ color: '#5c4436' }}>
                 Search by Work Order Number or Date
@@ -480,7 +440,7 @@ WhatsApp: +60 11-6319 9899`;
                 </button>
               </div>
 
-              {/* Search Results List (for date search) */}
+              {/* Search Results List */}
               {searchResults.length > 0 && (
                 <div className="mt-6">
                   <p className="text-sm font-medium mb-3" style={{ color: '#5c4436' }}>
