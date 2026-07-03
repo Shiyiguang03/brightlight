@@ -19,7 +19,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
- address       String?
+  address        String?
   // Requests where this user is the customer
   repairRequests RepairRequest[]
 
@@ -29,6 +29,7 @@ model User {
 
 model RepairRequest {
   id     Int  @id @default(autoincrement())
+  workOrderNumber String? @unique
   userId Int
   user   User @relation(fields: [userId], references: [id])
 
@@ -53,7 +54,36 @@ model RepairRequest {
   internalNotes      String?
   images             String[]  @default([])
 
+  notes              RepairNote[]
+
+  conditions         RepairCondition[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
 
+model RepairCondition {
+  id              Int           @id @default(autoincrement())
+  repairRequestId Int
+  repairRequest   RepairRequest @relation(fields: [repairRequestId], references: [id], onDelete: Cascade)
+
+  hasDent             Boolean  @default(false)
+  hasScratch          Boolean  @default(false)
+  hasSticker          Boolean  @default(false)
+  hasStain            Boolean  @default(false)
+  otherConditions     Json?
+  returnedAccessories Json?
+  notes               String?
+  recordedBy          Int?
+  createdAt           DateTime @default(now())
+}
+
+model RepairNote {
+  id          Int      @id @default(autoincrement())
+  repairId    Int
+  repair      RepairRequest @relation(fields: [repairId], references: [id], onDelete: Cascade)
+  
+  content     String
+  createdBy   String?           // Optional: staff name or email
+  createdAt   DateTime @default(now())
 }

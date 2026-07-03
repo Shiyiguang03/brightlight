@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
+import { generateWorkOrderNumber } from '@/lib/generateWorkOrderNumber';   // ← ADD THIS
 
 const prisma = new PrismaClient();
 
@@ -60,6 +61,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ==================== GENERATE WORK ORDER NUMBER ====================
+    const workOrderNumber = await generateWorkOrderNumber('WEB');   // ← ADD THIS
+
     // Save to database
     const repairRequest = await prisma.repairRequest.create({
       data: {
@@ -78,6 +82,7 @@ export async function POST(request: NextRequest) {
         preferredStartDate: preferredStartDate ? new Date(preferredStartDate) : null,
         preferredEndDate: preferredEndDate ? new Date(preferredEndDate) : null,
         images: imageUrls,
+        workOrderNumber,                    // ← ADD THIS
       },
     });
 

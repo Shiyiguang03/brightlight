@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'userId is required' }, { status: 400 });
     }
 
-    // Explicitly select all fields including images
     const repairs = await prisma.repairRequest.findMany({
       where: {
         userId: Number(userId),
       },
       select: {
         id: true,
+        workOrderNumber: true,           // ← ADD THIS
         deviceType: true,
         brand: true,
         model: true,
@@ -35,18 +35,19 @@ export async function GET(request: NextRequest) {
         status: true,
         createdAt: true,
         updatedAt: true,
-        images: true,                    // ← Force include images
+        images: true,
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    // Debug log - check your terminal
+    // Debug log
     console.log('=== My Repairs API Response ===');
     console.log('User ID:', userId);
     console.log('Number of repairs:', repairs.length);
     if (repairs.length > 0) {
+      console.log('First repair Work Order Number:', repairs[0].workOrderNumber);
       console.log('First repair images:', repairs[0].images);
     }
 

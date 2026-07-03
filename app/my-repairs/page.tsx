@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import QRCode from 'qrcode';
 
 const STATUS_STEPS = [
   { name: 'Received', icon: 'package' },
@@ -127,7 +128,6 @@ function ProgressTracker({ status }: { status: string }) {
   );
 }
 
-// ✅ NEW: Helper function to format date + time nicely
 function formatDateTime(dateString: string) {
   const date = new Date(dateString);
   return date.toLocaleString('en-MY', {
@@ -144,6 +144,17 @@ export default function MyRepairsPage() {
   const [repairs, setRepairs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRepair, setSelectedRepair] = useState<any>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+
+  // ==================== NEW: Get Work Order Number ====================
+  const getWorkOrderNumber = (repairData: any): string => {
+    if (!repairData) return '';
+    if (repairData.workOrderNumber) return repairData.workOrderNumber;
+
+    // Fallback for old data
+    const datePart = new Date(repairData.createdAt).toLocaleDateString('en-GB').replace(/\//g, '');
+    return `WO-WEB-${datePart}-${String(repairData.id).padStart(3, '0')}`;
+  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -159,6 +170,137 @@ export default function MyRepairsPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Generate QR Code with new format
+  useEffect(() => {
+    if (selectedRepair) {
+      const generateQR = async () => {
+        try {
+          const workOrderNumber = getWorkOrderNumber(selectedRepair);
+          const dataUrl = await QRCode.toDataURL(workOrderNumber, {
+            width: 220,
+            margin: 2,
+            color: {
+              dark: '#453227',
+              light: '#ffffff',
+            },
+          });
+          setQrCodeUrl(dataUrl);
+        } catch (err) {
+          console.error('QR generation failed', err);
+        }
+      };
+      generateQR();
+    } else {
+      setQrCodeUrl('');
+    }
+  }, [selectedRepair]);
+
+  // ==================== NEW: Print Work Order ====================
+  const handlePrintWorkOrder = () => {
+    if (!selectedRepair || !qrCodeUrl) return;
+
+    const workOrderNumber = getWorkOrderNumber(selectedRepair);
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printContent = `
+      <html>
+        <head>
+          <title>Work Order - ${workOrderNumber}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; margin: 0; padding: 40px; color: #1f2937; background: white; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #d97706; padding-bottom: 20px; margin-bottom: 30px; }
+            .company-info h1 { font-size: 28px; font-weight: 700; color: #453227; margin: 0; }
+            .company-info .reg { font-size: 13px; color: #6b5c4f; }
+            .contact { font-size: 13px; color: #6b5c4f; line-height: 1.6; }
+            .wo-number { text-align: right; }
+            .wo-number .label { font-size: 12px; color: #6b5c4f; }
+            .wo-number .number { font-size: 22px; font-weight: 700; color: #d97706; }
+            .section { margin-bottom: 24px; }
+            .section-title { font-size: 13px; font-weight: 600; color: #78350f; background: #fef3c7; padding: 6px 12px; border-radius: 6px; display: inline-block; margin-bottom: 12px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 40px; }
+            .info-item label { font-size: 12px; color: #6b5c4f; display: block; margin-bottom: 4px; }
+            .info-item .value { font-size: 15px; font-weight: 500; color: #1f2937; }
+            .problem-box { background: #fffbeb; border: 1px solid #e6dfd5; border-radius: 10px; padding: 16px; font-size: 15px; line-height: 1.6; }
+            .accessories { display: flex; flex-wrap: wrap; gap: 12px; }
+            .accessory-item { background: #fef3c7; color: #92400e; padding: 6px 14px; border-radius: 9999px; font-size: 13px; font-weight: 500; }
+            .qr-section { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #d1d5db; }
+            .footer-note { font-size: 11px; color: #6b5c4f; margin-top: 40px; text-align: center; }
+            @media print { body { padding: 20px; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="company-info">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <img src="/images/logo.jpg" alt="Logo" style="height: 48px; width: auto;" />
+                <div>
+                  <h1>Bright Light</h1>
+                  <div class="reg">Technology Services • Reg No: XXXXXXX-X (To be updated)</div>
+                </div>
+              </div>
+              <div class="contact">
+                WhatsApp: +60 11-6319 9899 &nbsp;|&nbsp; Phone: +60 11-6319 9899<br>
+                Email: bright.lightservices@gmail.com
+              </div>
+            </div>
+            <div class="wo-number">
+              <div class="label">WORK ORDER</div>
+              <div class="number">${workOrderNumber}</div>
+              <div style="font-size: 12px; color: #6b5c4f; margin-top: 4px;">
+                Date: ${new Date(selectedRepair.createdAt).toLocaleDateString('en-MY')}
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">DEVICE INFORMATION</div>
+            <div class="info-grid">
+              <div class="info-item"><label>Device Type</label><div class="value">${selectedRepair.deviceType}</div></div>
+              <div class="info-item"><label>Brand &amp; Model</label><div class="value">${selectedRepair.brand} ${selectedRepair.model}</div></div>
+              <div class="info-item"><label>Serial Number</label><div class="value">${selectedRepair.serialNumber || '-'}</div></div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">PROBLEM DESCRIPTION</div>
+            <div class="problem-box">${selectedRepair.problemDescription}</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">ACCESSORIES</div>
+            <div class="accessories">
+              ${selectedRepair.hasCharger ? '<div class="accessory-item">Charger</div>' : ''}
+              ${selectedRepair.hasPowerCord ? '<div class="accessory-item">Power Cord</div>' : ''}
+              ${selectedRepair.hasMouse ? '<div class="accessory-item">Mouse</div>' : ''}
+              ${selectedRepair.hasBag ? '<div class="accessory-item">Laptop Bag</div>' : ''}
+              ${selectedRepair.otherItems ? `<div class="accessory-item">${selectedRepair.otherItems}</div>` : ''}
+            </div>
+          </div>
+
+          <div class="qr-section">
+            <img src="${qrCodeUrl}" style="width: 140px; height: 140px; margin: 0 auto 10px;" />
+            <div style="font-weight: 600; color: #453227;">${workOrderNumber}</div>
+          </div>
+
+          <div class="footer-note">
+            This is a computer-generated Work Order. Please keep this for your reference.<br>
+            Bright Light Technology Services • All rights reserved.
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 300);
+  };
 
   return (
     <div style={{ backgroundColor: '#fcfbf7', minHeight: '100vh', color: '#453227' }}>
@@ -213,6 +355,7 @@ export default function MyRepairsPage() {
           ) : (
             repairs.map((repair) => {
               const currentStatus = repair.status || 'Pending';
+              const workOrderNumber = getWorkOrderNumber(repair);
 
               return (
                 <div
@@ -237,7 +380,7 @@ export default function MyRepairsPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                     <div>
                       <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#453227', margin: '0 0 8px' }}>
-                        {repair.brand} {repair.model}
+                        {workOrderNumber}
                       </h2>
                       <StatusBadge status={currentStatus} />
                     </div>
@@ -277,7 +420,7 @@ export default function MyRepairsPage() {
               <div>
                 <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#453227', margin: 0 }}>Repair Details</h2>
                 <p style={{ fontSize: '13px', color: '#7c6251', margin: '4px 0 0' }}>
-                  Submitted on {formatDateTime(selectedRepair.createdAt)}
+                  {getWorkOrderNumber(selectedRepair)} • Submitted on {formatDateTime(selectedRepair.createdAt)}
                 </p>
               </div>
               <button 
@@ -357,6 +500,43 @@ export default function MyRepairsPage() {
                   </div>
                 </div>
               )}
+
+              {/* QR Code + Print Button */}
+              <div style={{ backgroundColor: '#fdfbf7', border: '1px solid #e6dfd5', borderRadius: '16px', padding: '24px', textAlign: 'center' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '700', color: '#7c6251', marginBottom: '16px' }}>
+                  WORK ORDER QR CODE
+                </h4>
+
+                {qrCodeUrl && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="Work Order QR Code" 
+                      style={{ width: '180px', height: '180px', border: '8px solid white', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }} 
+                    />
+                    <p style={{ fontSize: '14px', fontWeight: '600', color: '#453227' }}>
+                      {getWorkOrderNumber(selectedRepair)}
+                    </p>
+
+                    <button
+                      onClick={handlePrintWorkOrder}
+                      style={{
+                        backgroundColor: '#d97706',
+                        color: 'white',
+                        padding: '10px 24px',
+                        borderRadius: '10px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Print Work Order
+                    </button>
+                  </div>
+                )}
+              </div>
+
             </div>
 
             <div style={{ padding: '20px 32px', borderTop: '1px solid #e6dfd5', backgroundColor: '#fdfbf7', textAlign: 'right', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>

@@ -58,23 +58,27 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#fffbeb' }}>
       
-      {/* Navbar - Higher z-index so it stays on top */}
+      {/* Navbar */}
       <div className="sticky top-0 z-[60]">
         <Navbar />
       </div>
 
       <div className="flex flex-1 relative">
         
-        {/* Mobile Menu Button */}
-        <button 
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="md:hidden fixed top-20 left-4 z-[70] p-2 bg-white rounded-xl shadow border"
-          style={{ borderColor: '#e6dfd5' }}
-        >
-          ☰
-        </button>
+        {/* Mobile Menu Button - Only show when sidebar is closed */}
+{!sidebarOpen && (
+  <button 
+    onClick={() => setSidebarOpen(true)}
+    className="md:hidden fixed top-20 left-4 z-[70] p-3 bg-white rounded-2xl shadow-lg border flex items-center justify-center"
+    style={{ borderColor: '#e6dfd5' }}
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="#d97706" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
+)}
 
-        {/* Sidebar - Starts below navbar on desktop */}
+        {/* Sidebar */}
         <div 
           className={`
             fixed md:static top-16 md:top-0 left-0 z-[50] h-[calc(100vh-4rem)] md:h-full w-64 transform transition-transform duration-300 ease-in-out flex flex-col overflow-y-auto
@@ -140,7 +144,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </>
             )}
 
-            {/* STAFF MENU */}
+            {/* ==================== STAFF MENU ==================== */}
             {isStaffView && (
               <div>
                 <p className="px-3 mb-2 text-[10px] font-bold tracking-wider" style={{ color: '#78350f' }}>REPAIRS</p>
@@ -150,6 +154,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   </Link>
                   <Link href="/staff/repairs" className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" style={navLinkStyle('/staff/repairs')}>
                     📋 All Repair Requests
+                  </Link>
+
+                  {/* ✅ NEW: Scan QR Link */}
+                  <Link 
+                    href="/staff/scan-qr" 
+                    className="flex items-center gap-x-3 px-4 py-2.5 rounded-xl font-semibold transition-all hover:bg-[#fef3c7]" 
+                    style={navLinkStyle('/staff/scan-qr')}
+                  >
+                    📷 Scan QR Code
                   </Link>
                 </nav>
               </div>
@@ -196,13 +209,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         )}
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 p-5 md:p-6">
-            <div className="max-w-7xl mx-auto">
-              {children}
-            </div>
-          </div>
-        </div>
+{/* Main Content - Fixed for full background coverage */}
+<div className="flex-1 flex flex-col w-full">
+  <div className="flex-1 p-4 md:p-6 w-full">
+    <div className="w-full max-w-7xl mx-auto">
+      {children}
+    </div>
+  </div>
+</div>
       </div>
     </div>
   );
