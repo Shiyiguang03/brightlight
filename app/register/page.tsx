@@ -17,19 +17,37 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Modal states
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'success' | 'error'>('error');
+  const [modalMessage, setModalMessage] = useState('');
+
+  const showMessage = (message: string, type: 'success' | 'error' = 'error') => {
+    setModalMessage(message);
+    setModalType(type);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!fullName || !phone || !password || !confirmPassword) {
-      alert('Please fill in all required fields');
+      showMessage('Please fill in all required fields', 'error');
       return;
     }
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match');
+      showMessage('Passwords do not match', 'error');
       return;
     }
+
+    setLoading(true);
 
     try {
       const response = await fetch('/api/register', {
@@ -42,21 +60,27 @@ export default function RegisterPage() {
           phone: countryCode + phone.replace(/\s+/g, ''),
           email: email || null,
           password,
-          role: 'CUSTOMER', // ← Default to CUSTOMER only
+          role: 'CUSTOMER',
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert('Account created successfully!');
-        window.location.href = '/login';
+        showMessage('Account created successfully!', 'success');
+
+        // Redirect to login after showing success
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
       } else {
-        alert(data.message || 'Registration failed');
+        showMessage(data.message || 'Registration failed', 'error');
       }
     } catch (error) {
       console.error(error);
-      alert('Something went wrong. Please try again.');
+      showMessage('Something went wrong. Please try again.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,9 +90,9 @@ export default function RegisterPage() {
 
       <div style={{ backgroundColor: '#fcfbf7', minHeight: '100vh' }} className="flex flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-md" style={{ width: '100%', maxWidth: '440px' }}>
-          
+
           <div className="bg-white border rounded-3xl shadow-xl p-8 w-full" style={{ borderColor: '#e6dfd5' }}>
-            
+
             {/* Logo */}
             <div className="flex justify-center mb-6">
               <img
@@ -237,10 +261,11 @@ export default function RegisterPage() {
               {/* Submit Button */}
               <button
                 type="submit"
+                disabled={loading}
                 style={{
                   width: '100%',
                   height: '56px',
-                  backgroundColor: '#d97706',
+                  backgroundColor: loading ? '#9f7a5f' : '#d97706',
                   color: '#ffffff',
                   borderRadius: '12px',
                   fontSize: '15px',
@@ -249,12 +274,12 @@ export default function RegisterPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
                   marginTop: '10px',
                   marginBottom: '8px',
                 }}
               >
-                Create Account
+                {loading ? 'Creating Account...' : 'Create Account'}
               </button>
 
             </form>
@@ -276,6 +301,41 @@ export default function RegisterPage() {
 
         </div>
       </div>
+
+      {/* ==================== NICE MODAL ==================== */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl" style={{ border: '1px solid #e6dfd5' }}>
+
+            <div className="text-center">
+              {/* Icon */}
+              <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 
+                ${modalType === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+                <span className="text-3xl">
+                  {modalType === 'success' ? '✅' : '⚠️'}
+                </span>
+              </div>
+
+              {/* Message */}
+              <p className="text-lg font-medium mb-6" style={{ color: '#453227' }}>
+                {modalMessage}
+              </p>
+
+              {/* Button */}
+              <button
+                onClick={closeModal}
+                className="w-full py-3.5 rounded-2xl font-bold text-lg transition hover:opacity-90"
+                style={{
+                  backgroundColor: modalType === 'success' ? '#16a34a' : '#d97706',
+                  color: 'white'
+                }}
+              >
+                {modalType === 'success' ? 'Continue to Login' : 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

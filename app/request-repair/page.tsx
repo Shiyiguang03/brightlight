@@ -30,13 +30,16 @@ export default function RequestRepairPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [inputKey, setInputKey] = useState(Date.now());
 
-  // Popular Brands
+  // Modal State
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'success' | 'error'>('error');
+  const [modalMessage, setModalMessage] = useState('');
+
   const popularBrands = [
     'Apple', 'Dell', 'HP', 'Lenovo', 'ASUS', 'Acer', 'MSI',
     'Microsoft', 'Samsung', 'LG', 'Razer', 'Huawei'
   ];
 
-  // Brand-specific Models
   const brandModels: Record<string, string[]> = {
     'Apple': ['MacBook Air', 'MacBook Pro', 'iMac', 'Mac Mini'],
     'Dell': ['XPS 13', 'XPS 15', 'Inspiron', 'Latitude', 'G Series'],
@@ -60,7 +63,6 @@ export default function RequestRepairPage() {
     return [...models, 'Other'];
   };
 
-  // Set default dates
   useEffect(() => {
     const today = new Date();
     const nextWeek = new Date();
@@ -108,18 +110,31 @@ export default function RequestRepairPage() {
     setInputKey(Date.now());
   };
 
+  // Modal functions
+  const showMessage = (message: string, type: 'success' | 'error') => {
+    setModalMessage(message);
+    setModalType(type);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.termsAccepted) {
-      alert('Please accept the Terms & Conditions to continue.');
+      showMessage('Please accept the Terms & Conditions to continue.', 'error');
       return;
     }
 
     const storedUser = localStorage.getItem('user');
     if (!storedUser) {
-      alert('Please login first to submit a repair request.');
-      window.location.href = '/login';
+      showMessage('Please login first to submit a repair request.', 'error');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
       return;
     }
 
@@ -159,16 +174,19 @@ export default function RequestRepairPage() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Backend Error:', errorText);
-        alert('Failed to submit request. Please try again.');
+        showMessage('Failed to submit request. Please try again.', 'error');
         return;
       }
 
-      alert('Repair request submitted successfully!');
-      window.location.href = '/my-repairs';
+      showMessage('Repair request submitted successfully!', 'success');
+
+      setTimeout(() => {
+        window.location.href = '/my-repairs';
+      }, 1800);
 
     } catch (error) {
       console.error(error);
-      alert('Something went wrong. Please try again.');
+      showMessage('Something went wrong. Please try again.', 'error');
     }
   };
 
@@ -282,7 +300,7 @@ export default function RequestRepairPage() {
                 </div>
               </div>
 
-              {/* Serial Number - Required + Info Icon */}
+              {/* Serial Number */}
               <div>
                 <label className="block text-xs font-bold mb-2 flex items-center gap-2" style={{ color: '#6b5446' }}>
                   SERIAL NUMBER <span className="text-red-500">*</span>
@@ -415,7 +433,6 @@ export default function RequestRepairPage() {
                 </label>
               </div>
 
-              {/* Drop off Address */}
               {formData.deliveryOption === 'dropoff' && (
                 <div className="p-4 rounded-2xl border" style={{ backgroundColor: '#fefce8', borderColor: '#e6dfd5' }}>
                   <p className="font-semibold text-sm mb-1" style={{ color: '#453227' }}>Drop off Address:</p>
@@ -430,7 +447,6 @@ export default function RequestRepairPage() {
                 </div>
               )}
 
-              {/* Pickup Address */}
               {formData.deliveryOption === 'pickup' && (
                 <div>
                   <label className="block text-xs font-bold mb-2" style={{ color: '#6b5446' }}>YOUR ADDRESS FOR PICKUP</label>
@@ -451,7 +467,7 @@ export default function RequestRepairPage() {
               </div>
             </div>
 
-            {/* Terms & Conditions - Full Version */}
+            {/* Terms & Conditions */}
             <div className="mb-6 p-6 rounded-2xl border" style={{ backgroundColor: '#fefce8', borderColor: '#e6dfd5' }}>
               <h3 className="font-bold text-base mb-4" style={{ color: '#453227' }}>Terms & Conditions</h3>
 
@@ -497,6 +513,27 @@ export default function RequestRepairPage() {
           </form>
         </div>
       </div>
+
+      {/* ==================== MODAL ==================== */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl" style={{ border: '1px solid #e6dfd5' }}>
+            <div className="text-center">
+              <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${modalType === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+                <span className="text-3xl">{modalType === 'success' ? '✅' : '⚠️'}</span>
+              </div>
+              <p className="text-lg font-medium mb-6" style={{ color: '#453227' }}>{modalMessage}</p>
+              <button
+                onClick={closeModal}
+                className="w-full py-3.5 rounded-2xl font-bold text-lg text-white"
+                style={{ backgroundColor: modalType === 'success' ? '#16a34a' : '#d97706' }}
+              >
+                {modalType === 'success' ? 'Continue' : 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

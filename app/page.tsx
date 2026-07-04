@@ -5,6 +5,8 @@ import Navbar from '@/components/Navbar';
 
 export default function BrightLightHome() {
   const [userName, setUserName] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -14,30 +16,38 @@ export default function BrightLightHome() {
     }
   }, []);
 
-  // Improved login prompt
+  // Open nice modal instead of confirm()
   const handleProtectedAction = (path: string, message: string) => {
     const user = localStorage.getItem('user');
     if (user) {
       window.location.href = path;
     } else {
-      if (confirm(`${message}\n\nDo you want to login now?`)) {
-        window.location.href = '/login';
-      }
+      setModalMessage(message);
+      setShowLoginModal(true);
     }
+  };
+
+  const goToLogin = () => {
+    setShowLoginModal(false);
+    window.location.href = '/login';
+  };
+
+  const goToRegister = () => {
+    setShowLoginModal(false);
+    window.location.href = '/register';
   };
 
   return (
     <div className="min-h-screen font-sans" style={{ backgroundColor: '#fcfbf7', color: '#453227' }}>
-      
+
       <Navbar />
 
       {/* Hero Section */}
       <section style={{ background: 'linear-gradient(135deg, #2e1f15 0%, #451a03 50%, #78350f 100%)' }} className="text-white">
         <div className="max-w-5xl mx-auto px-6 pt-16 pb-20 text-center">
-          
-          {/* Trust Badge */}
-          <div className="inline-flex items-center gap-x-2 px-4 py-1.5 rounded-full text-sm mb-6 border" 
-               style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}>
+
+          <div className="inline-flex items-center gap-x-2 px-4 py-1.5 rounded-full text-sm mb-6 border"
+            style={{ backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)' }}>
             <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
             <span className="font-medium" style={{ color: '#fef3c7' }}>
               Trusted by 500+ customers in northern Peninsular Malaysia especially in Penang
@@ -49,45 +59,26 @@ export default function BrightLightHome() {
             Peripheral Repairs<br />
             <span style={{ color: '#fde68a' }}>Done Right. Tracked Live.</span>
           </h1>
-          
+
           <p className="max-w-2xl mx-auto text-xl mb-10" style={{ color: '#f5eae0' }}>
             Book a repair in 2 minutes. Choose self drop-off or we pickup.<br />
             Watch real-time progress. Pay only when you're happy.
           </p>
 
-          {/* Improved Buttons with Hover Effects */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            
-            {/* Request Repair Now Button */}
-            <button 
+
+            <button
               onClick={() => handleProtectedAction('/request-repair', 'Please login to submit a repair request.')}
               className="inline-flex items-center justify-center gap-x-3 text-white font-bold px-8 py-4 rounded-2xl text-lg transition-all duration-200 shadow-lg active:scale-[0.985]"
               style={{ backgroundColor: '#d97706' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#b45309';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#d97706';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
             >
               Request Repair Now
             </button>
 
-            {/* Track My Repair Button - Now solid with hover effect */}
-            <button 
+            <button
               onClick={() => handleProtectedAction('/my-repairs', 'Please login to track your repairs.')}
               className="inline-flex items-center justify-center gap-x-3 font-bold px-8 py-4 rounded-2xl text-lg transition-all duration-200 shadow-lg active:scale-[0.985]"
               style={{ backgroundColor: '#453227', color: 'white', border: '1px solid #5c4436' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#5c4436';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#453227';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
             >
               Track My Repair
             </button>
@@ -184,8 +175,8 @@ export default function BrightLightHome() {
             "UPS",
             "PC/Laptop Accessories"
           ].map((item, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="bg-white border rounded-2xl p-5 hover:shadow-md transition flex items-center"
               style={{ borderColor: '#e6dfd5' }}
             >
@@ -226,13 +217,13 @@ export default function BrightLightHome() {
         </div>
       </section>
 
-      {/* Final CTA - Hidden when logged in */}
+      {/* Final CTA */}
       {!userName && (
         <div style={{ backgroundColor: '#1f130b' }} className="text-white py-14">
           <div className="max-w-4xl mx-auto px-6 text-center">
             <h2 className="text-3xl font-bold tracking-tight mb-3 text-white">Ready to get your device fixed?</h2>
             <p className="mb-8" style={{ color: '#d9c8bc' }}>Join hundreds of happy customers who track their repair in real time.</p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a href="/register" className="px-10 py-4 bg-white font-bold rounded-2xl text-lg hover:bg-amber-50 transition" style={{ color: '#1f130b' }}>Create Free Account</a>
               <a href="/login" className="px-10 py-4 border hover:bg-white/5 font-bold rounded-2xl text-lg transition" style={{ borderColor: 'rgba(255,255,255,0.3)' }}>Login</a>
@@ -254,14 +245,56 @@ export default function BrightLightHome() {
       </footer>
 
       {/* Floating WhatsApp Button */}
-      <a 
-        href="https://wa.me/60123456789?text=Hi%20Bright%20Light%2C%20I%20need%20help%20with%20my%20laptop" 
+      <a
+        href="https://wa.me/60123456789?text=Hi%20Bright%20Light%2C%20I%20need%20help%20with%20my%20laptop"
         target="_blank"
         className="fixed bottom-6 right-6 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl z-50 text-3xl"
         style={{ backgroundColor: '#d97706' }}
       >
         💬
       </a>
+
+      {/* ==================== NICE LOGIN MODAL ==================== */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl" style={{ border: '1px solid #e6dfd5' }}>
+
+            <div className="text-center mb-6">
+              <div className="mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#fef3c7' }}>
+                <span className="text-3xl">🔐</span>
+              </div>
+              <h3 className="text-2xl font-bold" style={{ color: '#453227' }}>Login Required</h3>
+              <p className="mt-2 text-sm" style={{ color: '#7c6251' }}>{modalMessage}</p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={goToLogin}
+                className="w-full py-3.5 rounded-2xl font-bold text-white text-lg transition hover:opacity-90"
+                style={{ backgroundColor: '#d97706' }}
+              >
+                Login to Continue
+              </button>
+
+              <button
+                onClick={goToRegister}
+                className="w-full py-3.5 rounded-2xl font-semibold text-lg border transition hover:bg-gray-50"
+                style={{ borderColor: '#e6dfd5', color: '#453227' }}
+              >
+                Create Free Account
+              </button>
+
+              <button
+                onClick={() => setShowLoginModal(false)}
+                className="w-full py-3 text-sm font-medium"
+                style={{ color: '#7c6251' }}
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
