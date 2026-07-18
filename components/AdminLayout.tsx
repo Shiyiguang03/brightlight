@@ -16,7 +16,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [viewMode, setViewMode] = useState('SUPER ADMIN');
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
       const user = JSON.parse(storedUser);
       setUserRole(user.role);
@@ -191,7 +191,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="p-4 border-t mt-auto" style={{ borderColor: '#e6dfd5' }}>
             <button 
               onClick={() => {
-                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
                 localStorage.removeItem('viewMode');
                 window.location.href = '/login';
               }}

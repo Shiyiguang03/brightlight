@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/apiError';
 
 export async function GET(
   request: NextRequest,
@@ -38,12 +39,8 @@ export async function GET(
     }
 
     return NextResponse.json(repairRequest);
-  } catch (error: any) {
-    console.error('Error fetching repair request:', error);
-    return NextResponse.json(
-      { message: 'Failed to fetch repair request', error: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'Error fetching repair request');
   }
 }
 
@@ -70,11 +67,7 @@ export async function PATCH(
     });
 
     return NextResponse.json(updated);
-  } catch (error: any) {
-    console.error('PATCH Error:', error);
-    return NextResponse.json(
-      { message: 'Update failed', error: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'Error updating repair request');
   }
 }

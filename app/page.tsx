@@ -2,14 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import { useChat } from '@/components/ChatProvider';
 
 export default function BrightLightHome() {
   const [userName, setUserName] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const { openChat } = useChat();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
       const user = JSON.parse(storedUser);
       setUserName(user.fullName);
@@ -18,7 +20,7 @@ export default function BrightLightHome() {
 
   // Open nice modal instead of confirm()
   const handleProtectedAction = (path: string, message: string) => {
-    const user = localStorage.getItem('user');
+    const user = sessionStorage.getItem('user');
     if (user) {
       window.location.href = path;
     } else {
@@ -239,20 +241,20 @@ export default function BrightLightHome() {
           <div className="flex gap-x-6">
             <a href="#" className="hover:text-stone-900">Privacy</a>
             <a href="#" className="hover:text-stone-900">Terms</a>
-            <a href="https://wa.me/60123456789" target="_blank" style={{ color: '#b45309' }}>WhatsApp Support</a>
+            <button onClick={openChat} className="hover:opacity-80" style={{ color: '#b45309' }}>Chat Support</button>
           </div>
         </div>
       </footer>
 
-      {/* Floating WhatsApp Button */}
-      <a
-        href="https://wa.me/60123456789?text=Hi%20Bright%20Light%2C%20I%20need%20help%20with%20my%20laptop"
-        target="_blank"
-        className="fixed bottom-6 right-6 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl z-50 text-3xl"
+      {/* Floating Chat Button */}
+      <button
+        onClick={openChat}
+        aria-label="Chat with us"
+        className="fixed bottom-6 right-6 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl z-50 text-3xl transition hover:opacity-90"
         style={{ backgroundColor: '#d97706' }}
       >
         💬
-      </a>
+      </button>
 
       {/* ==================== NICE LOGIN MODAL ==================== */}
       {showLoginModal && (

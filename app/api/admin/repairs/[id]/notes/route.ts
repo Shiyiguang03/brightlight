@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/apiError';
 
 export async function GET(
   request: NextRequest,
@@ -20,8 +21,7 @@ export async function GET(
 
     return NextResponse.json(notes);
   } catch (error) {
-    console.error('Error fetching notes:', error);
-    return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 });
+    return handleApiError(error, 'Error fetching notes');
   }
 }
 
@@ -54,7 +54,6 @@ export async function POST(
 
     return NextResponse.json(newNote, { status: 201 });
   } catch (error) {
-    console.error('Error creating note:', error);
-    return NextResponse.json({ error: 'Failed to create note' }, { status: 500 });
+    return handleApiError(error, 'Error creating note');
   }
 }

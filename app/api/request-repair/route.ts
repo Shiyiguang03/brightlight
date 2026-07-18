@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createClient } from '@supabase/supabase-js';
 import { generateWorkOrderNumber } from '@/lib/generateWorkOrderNumber';   // ← ADD THIS
+import { handleApiError } from '@/lib/apiError';
 
 const prisma = new PrismaClient();
 
@@ -92,7 +93,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error creating repair request:', error);
-    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+    return handleApiError(error, 'Error creating repair request');
   }
 }

@@ -143,6 +143,12 @@ export default function StaffScanQRPage() {
       const res = await fetch(`/api/admin/repairs/${id}`);
       const data = await res.json();
 
+      if (!res.ok) {
+        setMessage(data?.message || 'Error loading repair');
+        setMessageType('error');
+        return;
+      }
+
       if (data && data.id) {
         setRepair(data);
         setStatus(data.status);
@@ -164,7 +170,7 @@ export default function StaffScanQRPage() {
       }
     } catch (error) {
       console.error(error);
-      setMessage('Error loading repair');
+      setMessage("We couldn't reach the server. Please check your connection and try again.");
       setMessageType('error');
     } finally {
       setLoading(false);
@@ -252,11 +258,18 @@ WhatsApp: +60 11-6319 9899`;
 
   const updateStatusAutomatically = async (repairId: number, newStatus: string) => {
     try {
-      await fetch(`/api/admin/repairs/${repairId}`, {
+      const res = await fetch(`/api/admin/repairs/${repairId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setMessage(data?.message || 'Failed to update status');
+        setMessageType('error');
+        return;
+      }
 
       setStatus(newStatus);
       setMessage(`Status updated to: ${newStatus}`);
@@ -270,7 +283,7 @@ WhatsApp: +60 11-6319 9899`;
         }, 2000);
       }
     } catch (error) {
-      setMessage('Failed to update status');
+      setMessage("We couldn't reach the server. Please check your connection and try again.");
       setMessageType('error');
     }
   };
@@ -306,13 +319,20 @@ WhatsApp: +60 11-6319 9899`;
     setSaving(true);
 
     try {
-      await fetch(`/api/admin/repairs/${repair.id}`, {
+      const statusRes = await fetch(`/api/admin/repairs/${repair.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, ...returnedAccessories }),
       });
 
-      await fetch(`/api/admin/repairs/${repair.id}/condition`, {
+      if (!statusRes.ok) {
+        const data = await statusRes.json().catch(() => null);
+        setMessage(data?.message || 'Failed to save');
+        setMessageType('error');
+        return;
+      }
+
+      const conditionRes = await fetch(`/api/admin/repairs/${repair.id}/condition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -325,6 +345,13 @@ WhatsApp: +60 11-6319 9899`;
           notes: '',
         }),
       });
+
+      if (!conditionRes.ok) {
+        const data = await conditionRes.json().catch(() => null);
+        setMessage(data?.message || 'Failed to save');
+        setMessageType('error');
+        return;
+      }
 
       setMessage('Changes saved successfully!');
       setMessageType('success');
@@ -343,7 +370,7 @@ WhatsApp: +60 11-6319 9899`;
       }, 2000);
 
     } catch (error) {
-      setMessage('Failed to save');
+      setMessage("We couldn't reach the server. Please check your connection and try again.");
       setMessageType('error');
     } finally {
       setSaving(false);

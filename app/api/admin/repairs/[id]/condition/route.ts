@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/apiError';
 
 export async function POST(
   request: NextRequest,
@@ -24,7 +25,7 @@ export async function POST(
     });
 
     return NextResponse.json(condition);
-  } catch (error: any) {
-    return NextResponse.json({ message: 'Failed to save condition', error: error.message }, { status: 500 });
+  } catch (error) {
+    return handleApiError(error, 'Error saving condition');
   }
 }

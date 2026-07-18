@@ -53,9 +53,9 @@ export default function AgentMyRequests() {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const storedUser = localStorage.getItem('user');
+        const storedUser = sessionStorage.getItem('user');
         if (!storedUser) {
-          console.error('No user found in localStorage');
+          console.error('No user found in sessionStorage');
           setLoading(false);
           return;
         }

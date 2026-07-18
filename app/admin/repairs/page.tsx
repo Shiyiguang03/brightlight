@@ -6,6 +6,7 @@ import AdminLayout from '@/components/AdminLayout';
 
 interface RepairRequest {
   id: number;
+  workOrderNumber?: string | null;
   user?: { fullName: string; phone: string };
   deviceType: string;
   brand: string;
@@ -137,7 +138,7 @@ export default function AdminRepairsPage() {
               <table className="w-full">
                 <thead>
                   <tr style={{ backgroundColor: '#fdfbf7', borderBottom: '1px solid #e6dfd5' }}>
-                    <th className="text-left px-6 py-4 text-xs font-bold tracking-wider" style={{ color: '#7c6251' }}>ID</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold tracking-wider" style={{ color: '#7c6251' }}>WORK ORDER</th>
                     <th className="text-left px-6 py-4 text-xs font-bold tracking-wider" style={{ color: '#7c6251' }}>CUSTOMER</th>
                     <th className="text-left px-6 py-4 text-xs font-bold tracking-wider" style={{ color: '#7c6251' }}>DEVICE</th>
                     <th className="text-left px-6 py-4 text-xs font-bold tracking-wider" style={{ color: '#7c6251' }}>URGENCY</th>
@@ -151,7 +152,7 @@ export default function AdminRepairsPage() {
                     const statusStyle = getStatusStyle(req.status);
                     return (
                       <tr key={req.id} className="border-b hover:bg-gray-50" style={{ borderColor: '#f3f4f6' }}>
-                        <td className="px-6 py-4 font-bold" style={{ color: '#1f130b' }}>#{req.id}</td>
+                        <td className="px-6 py-4 font-mono font-bold" style={{ color: '#1f130b' }}>{req.workOrderNumber || `#${req.id}`}</td>
                         <td className="px-6 py-4">
                           <div>
                             <p style={{ color: '#1f130b', fontWeight: '500' }}>{req.user?.fullName || 'N/A'}</p>

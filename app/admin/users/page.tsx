@@ -93,7 +93,8 @@ export default function AllUsersPage() {
       });
 
       if (!res.ok) {
-        alert('Failed to reset password');
+        const data = await res.json().catch(() => null);
+        alert(data?.message || 'Failed to reset password');
         return;
       }
 
@@ -125,7 +126,7 @@ WhatsApp: +60 11-6319 9899`;
 
     } catch (error) {
       console.error(error);
-      alert('Something went wrong while resetting password.');
+      alert("We couldn't reach the server. Please check your connection and try again.");
     } finally {
       setResetting(false);
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { generateWorkOrderNumber } from '@/lib/generateWorkOrderNumber';
+import { handleApiError } from '@/lib/apiError';
 
 const prisma = new PrismaClient();
 
@@ -59,10 +60,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error creating agent repair request:', error);
-    return NextResponse.json({
-      message: 'Failed to submit repair request',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return handleApiError(error, 'Error creating agent repair request');
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { handleApiError } from '@/lib/apiError';
 
 export async function DELETE(
   request: NextRequest,
@@ -19,7 +20,6 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Note deleted successfully' });
   } catch (error) {
-    console.error('Error deleting note:', error);
-    return NextResponse.json({ error: 'Failed to delete note' }, { status: 500 });
+    return handleApiError(error, 'Error deleting note');
   }
 }

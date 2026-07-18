@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { handleApiError } from '@/lib/apiError';
 
 const prisma = new PrismaClient();
 
@@ -21,10 +22,6 @@ export async function GET() {
 
     return NextResponse.json(users);
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json(
-      { message: 'Failed to fetch users' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'Error fetching users');
   }
 }

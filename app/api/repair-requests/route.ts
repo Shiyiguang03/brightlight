@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { handleApiError } from '@/lib/apiError';
 
 const prisma = new PrismaClient();
 
@@ -33,10 +34,6 @@ export async function GET() {
 
     return NextResponse.json(formattedRequests);
   } catch (error) {
-    console.error('Error fetching repair requests:', error);
-    return NextResponse.json(
-      { message: 'Failed to fetch repair requests' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'Error fetching repair requests');
   }
 }

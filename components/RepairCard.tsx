@@ -10,7 +10,7 @@ export default function MyRepairsPage() {
   const [selectedRepair, setSelectedRepair] = useState<any>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (!storedUser) {
       window.location.href = '/login';
       return;

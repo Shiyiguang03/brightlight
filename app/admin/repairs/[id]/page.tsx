@@ -6,6 +6,7 @@ import AdminLayout from '@/components/AdminLayout';
 
 interface RepairRequest {
   id: number;
+  workOrderNumber?: string | null;
   user?: { fullName: string; phone: string };
   deviceType: string;
   brand: string;
@@ -85,7 +86,7 @@ export default function AdminRepairDetail() {
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#1f130b' }}>
-              Repair Request #{request.id}
+              Repair Request {request.workOrderNumber || `#${request.id}`}
             </h1>
             <p style={{ color: '#7c6251', marginTop: '4px' }}>
               Submitted on <span style={{ color: '#453227', fontWeight: '600' }}>{formatDateTime(request.createdAt)}</span>

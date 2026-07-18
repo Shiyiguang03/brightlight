@@ -48,7 +48,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+        sessionStorage.setItem('user', JSON.stringify(data.user));
         showMessage(`Welcome back, ${data.user.fullName}!`, 'success');
 
         // Redirect after showing success message
@@ -60,7 +60,7 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error(error);
-      showMessage('Something went wrong. Please try again.', 'error');
+      showMessage("We couldn't reach the server. Please check your connection and try again.", 'error');
     } finally {
       setLoading(false);
     }

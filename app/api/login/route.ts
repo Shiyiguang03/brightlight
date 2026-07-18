@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { normalizePhoneNumber } from '@/lib/phone';
 import { prisma } from '@/lib/prisma';   // ✅ Import from central Prisma client
+import { handleApiError } from '@/lib/apiError';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +58,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+    return handleApiError(error, 'Login error');
   }
 }

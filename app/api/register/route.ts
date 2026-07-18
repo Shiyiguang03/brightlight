@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { handleApiError } from '@/lib/apiError';
 
 const prisma = new PrismaClient();
 
@@ -75,10 +76,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { message: 'Something went wrong during registration' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'Registration error');
   }
 }

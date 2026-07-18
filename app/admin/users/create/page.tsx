@@ -58,7 +58,7 @@ export default function CreateUserPage() {
         setMessage(`❌ ${data.message}`);
       }
     } catch (error) {
-      setMessage('Something went wrong');
+      setMessage("We couldn't reach the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }

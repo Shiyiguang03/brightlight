@@ -29,7 +29,7 @@ export default function ProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
@@ -73,13 +73,14 @@ export default function ProfilePage() {
       });
 
       if (!res.ok) {
-        alert('Failed to save image');
+        const data = await res.json().catch(() => null);
+        alert(data?.message || 'Failed to save image');
         setUploading(false);
         return;
       }
 
       const updatedUser = { ...user, profileImage: imageUrl };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       setProfileImage(imageUrl);
       window.dispatchEvent(new Event('profile-updated'));
@@ -88,7 +89,7 @@ export default function ProfilePage() {
       setPreviewUrl(null);
       alert('Profile picture updated successfully!');
     } catch (err) {
-      alert('Something went wrong');
+      alert("We couldn't reach the server. Please check your connection and try again.");
     }
     setUploading(false);
   };
@@ -107,7 +108,7 @@ export default function ProfilePage() {
     });
 
     const updatedUser = { ...user, profileImage: null };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    sessionStorage.setItem('user', JSON.stringify(updatedUser));
     setUser(updatedUser);
     setProfileImage(null);
     window.dispatchEvent(new Event('profile-updated'));
@@ -154,7 +155,7 @@ export default function ProfilePage() {
         setPasswordMessage(data.message || 'Failed to change password');
       }
     } catch (error) {
-      setPasswordMessage('Something went wrong. Please try again.');
+      setPasswordMessage("We couldn't reach the server. Please check your connection and try again.");
     }
   };
 

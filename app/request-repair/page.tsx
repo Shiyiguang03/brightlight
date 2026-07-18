@@ -129,7 +129,7 @@ export default function RequestRepairPage() {
       return;
     }
 
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (!storedUser) {
       showMessage('Please login first to submit a repair request.', 'error');
       setTimeout(() => {
@@ -172,9 +172,9 @@ export default function RequestRepairPage() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Backend Error:', errorText);
-        showMessage('Failed to submit request. Please try again.', 'error');
+        const data = await response.json().catch(() => null);
+        console.error('Backend Error:', data);
+        showMessage(data?.message || 'Failed to submit request. Please try again.', 'error');
         return;
       }
 
@@ -186,7 +186,7 @@ export default function RequestRepairPage() {
 
     } catch (error) {
       console.error(error);
-      showMessage('Something went wrong. Please try again.', 'error');
+      showMessage("We couldn't reach the server. Please check your connection and try again.", 'error');
     }
   };
 

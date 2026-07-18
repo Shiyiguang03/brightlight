@@ -78,7 +78,7 @@ export default function RegisterPage() {
       }
     } catch (error) {
       console.error(error);
-      showMessage('Something went wrong. Please try again.', 'error');
+      showMessage("We couldn't reach the server. Please check your connection and try again.", 'error');
     } finally {
       setLoading(false);
     }

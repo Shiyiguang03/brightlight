@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
+import { useChat } from '@/components/ChatProvider';
 
 const ALL_MENU_ITEMS = [
   { label: 'Home Page', href: '/' },
@@ -24,12 +25,13 @@ const PUBLIC_MENU_ITEMS = [
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { openChat } = useChat();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
   useEffect(() => {
     const loadUser = () => {
-      const storedUser = localStorage.getItem('user');
+      const storedUser = sessionStorage.getItem('user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       } else {
@@ -56,7 +58,7 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
     window.location.href = '/login';
   };
 
@@ -138,15 +140,14 @@ export default function Navbar() {
           {/* Right Side */}
           <div className="flex items-center gap-x-3">
             
-            {/* Live Agent Button */}
-            <a 
-              href="https://wa.me/60123456789" 
-              target="_blank"
+            {/* Live Agent Button — opens the chat assistant */}
+            <button
+              onClick={openChat}
               className="hidden md:flex items-center gap-x-2 px-4 py-2 text-sm font-medium rounded-xl transition hover:opacity-90"
               style={{ color: '#b45309', backgroundColor: '#fef3c7' }}
             >
               Live Agent
-            </a>
+            </button>
 
             {/* Login Button - Show only when NOT logged in */}
             {!user && (
@@ -191,7 +192,20 @@ export default function Navbar() {
 
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-56 rounded-2xl shadow-xl border bg-white py-2 z-50" style={{ borderColor: '#e6dfd5' }}>
-                  
+
+                  {/* Chat with us — mobile equivalent of the desktop Live Agent button */}
+                  <button
+                    onClick={() => {
+                      openChat();
+                      setIsDropdownOpen(false);
+                    }}
+                    className="md:hidden w-full text-left block px-4 py-2.5 text-sm font-semibold transition hover:bg-[#fef3c7]"
+                    style={{ color: '#b45309' }}
+                  >
+                    💬 Chat with us
+                  </button>
+                  <div className="md:hidden border-t my-1" style={{ borderColor: '#f1f5f9' }}></div>
+
                   {/* Admin Dashboard - Only for Super Admin */}
                   {user?.role === 'SUPER ADMIN' && (
                     <>

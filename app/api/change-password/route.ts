@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { handleApiError } from '@/lib/apiError';
 
 const prisma = new PrismaClient();
 
@@ -50,11 +51,7 @@ export async function POST(request: NextRequest) {
       { message: 'Password changed successfully' },
       { status: 200 }
     );
-  } catch (error: any) {
-    console.error('Change password error:', error);
-    return NextResponse.json(
-      { message: 'Something went wrong while changing password' },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, 'Change password error');
   }
 }

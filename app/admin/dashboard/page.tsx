@@ -5,6 +5,7 @@ import AdminLayout from '@/components/AdminLayout';
 
 interface Repair {
   id: number;
+  workOrderNumber?: string | null;
   deviceType: string;
   brand: string;
   model: string;
@@ -95,7 +96,7 @@ export default function SuperAdminDashboard() {
                   <div className="w-2 h-2 mt-2 rounded-full bg-[#d97706]"></div>
                   <div className="flex-1">
                     <p style={{ color: '#453227' }}>
-                      <span className="font-semibold">WO-{String(repair.id).padStart(3, '0')}</span> — {repair.brand} {repair.model}
+                      <span className="font-semibold">{repair.workOrderNumber || `WO-${String(repair.id).padStart(3, '0')}`}</span> — {repair.brand} {repair.model}
                     </p>
                     <p className="text-sm mt-1" style={{ color: '#7c6251' }}>
                       {repair.problemDescription}

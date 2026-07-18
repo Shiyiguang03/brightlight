@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { handleApiError } from '@/lib/apiError';
 
 const prisma = new PrismaClient();
 
@@ -26,10 +27,6 @@ export async function GET() {
       totalRepairs,
     });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { message: 'Failed to fetch stats' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'Error fetching stats');
   }
 }

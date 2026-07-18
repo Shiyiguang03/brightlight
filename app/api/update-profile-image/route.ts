@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { handleApiError } from '@/lib/apiError';
 
 const prisma = new PrismaClient();
 
@@ -34,7 +35,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+    return handleApiError(error, 'Error updating profile image');
   }
 }

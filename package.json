@@ -7,9 +7,11 @@
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-pricing": "node scripts/generate-pricing-data.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.3",
     "@prisma/client": "^6.6.0",
     "@supabase/supabase-js": "^2.108.2",
     "bcryptjs": "^3.0.3",
@@ -30,6 +32,7 @@
     "eslint-config-next": "16.2.9",
     "prisma": "^6.6.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "xlsx": "^0.18.5"
   }
 }

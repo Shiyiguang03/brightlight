@@ -19,10 +19,12 @@ export default function StaffRepairDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [saveMessageIsError, setSaveMessageIsError] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
 
   const [notes, setNotes] = useState<any[]>([]);
   const [newNote, setNewNote] = useState('');
+  const [noteError, setNoteError] = useState('');
 
   const [accessories, setAccessories] = useState({
     hasCharger: false,
@@ -96,16 +98,26 @@ export default function StaffRepairDetail() {
   const handleUpdateStatus = async () => {
     setSaving(true);
     try {
-      await fetch(`/api/admin/repairs/${id}`, {
+      const res = await fetch(`/api/admin/repairs/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, ...accessories }),
       });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setSaveMessageIsError(true);
+        setSaveMessage(data?.message || 'Failed to update.');
+        return;
+      }
+
+      setSaveMessageIsError(false);
       setSaveMessage('Status updated!');
       await fetchRepair();
       setTimeout(() => setSaveMessage(''), 2000);
     } catch (error) {
-      setSaveMessage('Failed to update.');
+      setSaveMessageIsError(true);
+      setSaveMessage("We couldn't reach the server. Please check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -138,11 +150,15 @@ export default function StaffRepairDetail() {
       });
 
       if (res.ok) {
+        setNoteError('');
         setNewNote('');
         await fetchRepair();
+      } else {
+        const data = await res.json().catch(() => null);
+        setNoteError(data?.message || 'Failed to add note.');
       }
     } catch (error) {
-      console.error('Failed to add note');
+      setNoteError("We couldn't reach the server. Please check your connection and try again.");
     }
   };
 
@@ -150,12 +166,19 @@ export default function StaffRepairDetail() {
     if (!confirm('Delete this note?')) return;
 
     try {
-      await fetch(`/api/admin/repairs/${id}/notes/${noteId}`, {
+      const res = await fetch(`/api/admin/repairs/${id}/notes/${noteId}`, {
         method: 'DELETE',
       });
-      await fetchRepair();
+
+      if (res.ok) {
+        setNoteError('');
+        await fetchRepair();
+      } else {
+        const data = await res.json().catch(() => null);
+        setNoteError(data?.message || 'Failed to delete note.');
+      }
     } catch (error) {
-      console.error('Failed to delete note');
+      setNoteError("We couldn't reach the server. Please check your connection and try again.");
     }
   };
 
@@ -346,6 +369,8 @@ export default function StaffRepairDetail() {
             <div className="bg-white border rounded-2xl p-6" style={{ borderColor: '#e6dfd5' }}>
               <h3 className="font-bold mb-4" style={{ color: '#453227' }}>Internal Notes / Activity Log</h3>
 
+              {noteError && <p className="text-sm mb-3 text-red-600">{noteError}</p>}
+
               <div className="flex gap-3 mb-4">
                 <input
                   type="text"
@@ -388,7 +413,7 @@ export default function StaffRepairDetail() {
               <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full border rounded-xl px-4 py-3 mb-4 text-lg bg-[#fdfbf7] text-[#453227]" style={{ borderColor: '#d4c3b0' }}>
                 {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-              {saveMessage && <p className="text-sm mb-3 text-green-600">{saveMessage}</p>}
+              {saveMessage && <p className={`text-sm mb-3 ${saveMessageIsError ? 'text-red-600' : 'text-green-600'}`}>{saveMessage}</p>}
               <button onClick={handleUpdateStatus} disabled={saving} className="w-full py-3 rounded-xl font-bold text-white text-lg" style={{ backgroundColor: '#d97706' }}>
                 {saving ? 'Saving...' : 'Save Status'}
               </button>

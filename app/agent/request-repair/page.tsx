@@ -77,7 +77,7 @@ export default function AgentRequestRepair() {
     setLoading(true);
 
     try {
-      const storedUser = localStorage.getItem('user');
+      const storedUser = sessionStorage.getItem('user');
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
 
       // Upload images first
@@ -116,7 +116,7 @@ export default function AgentRequestRepair() {
       }
     } catch (error) {
       console.error(error);
-      alert('Something went wrong');
+      alert("We couldn't reach the server. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
