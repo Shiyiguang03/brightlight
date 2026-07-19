@@ -14,6 +14,41 @@ const GREETING: ChatMessage = {
   text: "Hi! 👋 I'm Bright Light's assistant. Ask me about repair pricing (e.g. \"laptop screen replacement\") or how our service works.",
 };
 
+// The conversation survives page reloads within the same day (nicer UX —
+// no lost context on refresh) but resets to just the greeting once a day
+// has passed since it started. This also keeps the server's per-conversation
+// AI-call cap (see app/api/chat/route.ts) meaningfully bounded per day
+// rather than resettable just by reloading the page.
+const STORAGE_KEY = 'brightlight_chat_v1';
+const RESET_AFTER_MS = 24 * 60 * 60 * 1000;
+
+interface StoredChat {
+  messages: ChatMessage[];
+  startedAt: number;
+}
+
+function loadStoredChat(): StoredChat {
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as StoredChat;
+        if (
+          parsed.startedAt &&
+          Date.now() - parsed.startedAt < RESET_AFTER_MS &&
+          Array.isArray(parsed.messages) &&
+          parsed.messages.length > 0
+        ) {
+          return parsed;
+        }
+      }
+    } catch {
+      // corrupt or inaccessible storage (e.g. private browsing) — start fresh
+    }
+  }
+  return { messages: [GREETING], startedAt: Date.now() };
+}
+
 const WIDGET_WIDTH = 380;
 const WIDGET_HEIGHT = 560;
 const EDGE_MARGIN = 16;
@@ -44,7 +79,9 @@ interface ChatWidgetProps {
 }
 
 export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredChat().messages);
+  const startedAtRef = useRef<number>(0);
+  if (startedAtRef.current === 0) startedAtRef.current = loadStoredChat().startedAt;
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [lastUserText, setLastUserText] = useState('');
@@ -56,6 +93,17 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isOpen]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ messages, startedAt: startedAtRef.current })
+      );
+    } catch {
+      // storage unavailable (e.g. private browsing) — chat just won't persist
+    }
+  }, [messages]);
 
   // Before the widget has ever been dragged, derive its position from the
   // current viewport at render time rather than storing it — once the user
@@ -106,7 +154,10 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          history: messages.map((m) => ({ role: m.role, text: m.text })),
+        }),
       });
 
       const data = await res.json();

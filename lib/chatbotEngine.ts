@@ -11,7 +11,7 @@ export interface ChatReply {
 const STOPWORDS = new Set([
   'and', 'or', 'the', 'a', 'an', 'with', 'without', 'for', 'to', 'of', 'on',
   'in', 'my', 'me', 'is', 'do', 'you', 'does', 'i', 'have', 'has', 'need',
-  'want', 'please', 'per', 'task', 'computer', 'depends', 'complications',
+  'want', 'please', 'per', 'task', 'computer', 'pc', 'depends', 'complications',
   'equipment', 'quality', 'brand', 'model', 'also', 'not', 'include', 'cost',
   'charges', 'apply', 'if', 'we', 'only', 'charge', 'minimal', 'services',
 ]);
@@ -44,8 +44,52 @@ const SYNONYMS: Record<string, string> = {
   connection: 'networking', lan: 'networking',
   hinges: 'hinge', wobbly: 'hinge', loose: 'hinge',
   bsod: 'bluescreen', crash: 'bluescreen', crashing: 'bluescreen', freeze: 'bluescreen',
-  freezing: 'bluescreen', frozen: 'bluescreen',
+  freezing: 'bluescreen', frozen: 'bluescreen', hang: 'bluescreen', hangs: 'bluescreen',
+  hanging: 'bluescreen', stuck: 'bluescreen',
+  // Component acronyms
+  ssd: 'hardware', hdd: 'hardware', ram: 'hardware', gpu: 'hardware',
+  psu: 'hardware', cpu: 'hardware', mobo: 'motherboard',
+  os: 'formatting', jack: 'motherboard', clock: 'cmos',
 };
+
+// Devices this shop doesn't service — surfaced explicitly so a query like
+// "phone replacement" gets a clear answer instead of a loose keyword match
+// on "replacement" against unrelated laptop parts.
+const OUT_OF_SCOPE_DEVICES: Record<string, string> = {
+  phone: 'phone', phones: 'phone', mobile: 'phone', smartphone: 'phone',
+  iphone: 'phone', android: 'phone', handphone: 'phone',
+  tablet: 'tablet', tablets: 'tablet', ipad: 'tablet',
+  printer: 'printer', printers: 'printer',
+  tv: 'TV', television: 'TV',
+  console: 'gaming console', playstation: 'gaming console', ps4: 'gaming console',
+  ps5: 'gaming console', xbox: 'gaming console', nintendo: 'gaming console',
+  camera: 'camera', cameras: 'camera',
+  smartwatch: 'smartwatch', smartwatches: 'smartwatch',
+};
+
+const REPAIR_SIGNAL_WORDS = new Set([
+  'replacement', 'replace', 'repair', 'repairs', 'fix', 'screen', 'battery',
+  'keyboard', 'motherboard', 'hinge', 'cover', 'speaker', 'cleaning',
+  'formatting', 'networking', 'hardware', 'bluescreen', 'broken', 'crack',
+  'cracked', 'shattered', 'upgrade',
+]);
+
+// "phone" alone is ambiguous — it's also how people ask for a contact number
+// (see the "contact" intent) — so only treat it as an out-of-scope device
+// when it's paired with a repair-ish word, e.g. "phone replacement" or
+// "phone screen cracked", not "what's your phone number".
+const AMBIGUOUS_DEVICE_WORDS = new Set(['phone', 'phones']);
+
+function detectOutOfScopeDevice(words: string[]): string | null {
+  const hasRepairSignal = words.some((w) => REPAIR_SIGNAL_WORDS.has(w));
+  for (const w of words) {
+    const label = OUT_OF_SCOPE_DEVICES[w];
+    if (!label) continue;
+    if (AMBIGUOUS_DEVICE_WORDS.has(w) && !hasRepairSignal) continue;
+    return label;
+  }
+  return null;
+}
 
 function expandSynonyms(words: string[]): string[] {
   const expanded = [...words];
@@ -79,18 +123,40 @@ function keywordWeight(word: string): number {
   return Math.log((TOTAL_ITEMS + 1) / (df + 1)) + 1;
 }
 
-function matchPricing(message: string, limit = 5): PricingItem[] {
-  const words = expandSynonyms(significantWords(message));
+// A match only counts as confident if at least one matched word is
+// distinctive enough on its own — otherwise a query like "laptop repair"
+// (both words common across nearly every item) would dump the whole catalog,
+// and something like "phone replacement" would surface random laptop parts
+// off the word "replacement" alone.
+const DISTINCTIVE_THRESHOLD = 2;
+
+// Some items are a meaningfully different, less common variant of a sibling
+// item — e.g. a laptop's CMOS battery (a tiny clock battery on the
+// motherboard) is a completely different repair from its main battery — so
+// they shouldn't surface unless the customer names the differentiator
+// directly. Without this, "battery replacement" ties "Laptop Battery
+// Replacement" with "Laptop CMOS Battery Replacement" since both only ever
+// match on the words the customer actually said ("battery"/"replacement"),
+// and the unmentioned "cmos" never counts against the tie.
+const REQUIRE_EXPLICIT_MENTION = new Set(['cmos']);
+
+function matchPricing(words: string[], limit = 5): PricingItem[] {
   if (words.length === 0) return [];
+  const wordSet = new Set(words);
 
   const scored = pricingIndex
     .map(({ item, keywords }) => {
-      const score = words
-        .filter((w) => keywords.has(w))
-        .reduce((sum, w) => sum + keywordWeight(w), 0);
-      return { item, score };
+      const requiresExplicitMention = [...keywords].some(
+        (k) => REQUIRE_EXPLICIT_MENTION.has(k) && !wordSet.has(k)
+      );
+      if (requiresExplicitMention) return { item, score: 0, maxWeight: 0 };
+
+      const matched = words.filter((w) => keywords.has(w));
+      const score = matched.reduce((sum, w) => sum + keywordWeight(w), 0);
+      const maxWeight = matched.reduce((m, w) => Math.max(m, keywordWeight(w)), 0);
+      return { item, score, maxWeight };
     })
-    .filter((s) => s.score > 0)
+    .filter((s) => s.score > 0 && s.maxWeight >= DISTINCTIVE_THRESHOLD)
     .sort((a, b) => b.score - a.score);
 
   if (scored.length === 0) return [];
@@ -159,8 +225,7 @@ const INTENTS: Intent[] = [
   },
 ];
 
-function matchIntent(message: string): Intent | null {
-  const words = significantWords(message);
+function matchIntent(words: string[]): Intent | null {
   for (const intent of INTENTS) {
     if (intent.keywords.some((k) => words.includes(k))) {
       return intent;
@@ -186,14 +251,69 @@ const COMPLEX_REPLY =
 const FALLBACK_REPLY =
   "Sorry, I couldn't find anything matching that. You can browse our services on the homepage, submit a repair request, or chat with a real person on WhatsApp.";
 
+// Basic typo tolerance: correct a word to a close vocabulary term — a repair
+// keyword, a synonym, an out-of-scope device — before we try to match on it.
+// e.g. "keybord" -> "keyboard", "moniter" -> "monitor" -> (via SYNONYMS) "screen".
+const VOCAB = new Set<string>([
+  ...pricingIndex.flatMap(({ keywords }) => [...keywords]),
+  ...Object.keys(SYNONYMS),
+  ...Object.values(SYNONYMS),
+  ...Object.keys(OUT_OF_SCOPE_DEVICES),
+  ...INTENTS.flatMap((i) => i.keywords),
+]);
+
+function levenshtein(a: string, b: string): number {
+  const dp: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+function correctWord(word: string): string {
+  if (word.length < 4 || VOCAB.has(word)) return word;
+  const maxDistance = word.length <= 5 ? 1 : 2;
+  let best = word;
+  let bestDistance = maxDistance + 1;
+  for (const candidate of VOCAB) {
+    if (Math.abs(candidate.length - word.length) > maxDistance) continue;
+    const distance = levenshtein(word, candidate);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = candidate;
+    }
+  }
+  return bestDistance <= maxDistance ? best : word;
+}
+
+function tokenize(message: string): string[] {
+  return expandSynonyms(significantWords(message).map(correctWord));
+}
+
 export function getAutoReply(message: string): ChatReply {
-  const pricingMatches = matchPricing(message);
+  const words = tokenize(message);
+
+  const outOfScopeDevice = detectOutOfScopeDevice(words);
+  if (outOfScopeDevice) {
+    return {
+      text: `We don't repair ${outOfScopeDevice}s here — Bright Light specializes in laptop & desktop computer repairs (screens, batteries, keyboards, motherboards, cleaning, formatting, networking & more). Happy to help if you've got a laptop or PC issue!`,
+      whatsappCta: true,
+    };
+  }
+
+  const pricingMatches = matchPricing(words);
   if (pricingMatches.length > 0) {
     const lines = pricingMatches.map((p) => `• ${p.service}: ${p.price}`).join('\n');
     return { text: `Here's what I found:\n${lines}` };
   }
 
-  const intent = matchIntent(message);
+  const intent = matchIntent(words);
   if (intent) return { text: intent.reply, whatsappCta: intent.whatsappCta };
 
   if (isComplexMessage(message)) {
